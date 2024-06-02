@@ -1,0 +1,16 @@
+<resources>
+	<string name="app_name">Pinger</string>
+	<string name="attribution_link">https://openstreetmap.org/copyright/</string>
+	<string name="attribution_text">Map © OpenStreetMap contributors (ODbL)</string>
+	<string name="send_ping_id_input_hint">Ping ID</string>
+	<string name="send_ping_button_label">Send Ping</string>
+	<string name="hello_blank_fragment">Hello blank fragment</string>
+	<string name="ping_request_received">Ping from {id} received</string>
+	<string name="ping_request_sent">Ping sent to {id}</string>
+	<string name="ping_request_accepted">{id} accepted your Ping</string>
+	<string name="ping_request_rejected">{id} rejected your Ping</string>
+	<string name="ping_request_timedout">Ping to {id} timed out</string>
+	<string name="user_s_ping_id">Ping ID: {id}</string>
+	<string name="send_ping_id_input_label">Ping</string>
+	<string name="api_url">ws://localhost:8000/</string>
+</resources>
