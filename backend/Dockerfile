@@ -18,9 +18,9 @@ RUN adduser \
 	--uid "${UID}" \
 	"${USER}"
 
-WORKDIR /pinger
+WORKDIR /pinger/backend
 
-COPY ./ .
+COPY ./ ..
 
 # Build with statically-linked musl libc
 RUN cargo build --target x86_64-unknown-linux-musl --release
@@ -35,7 +35,7 @@ COPY --from=builder /etc/group /etc/group
 WORKDIR /pinger
 
 # Copy the build
-COPY --from=builder /pinger/target/x86_64-unknown-linux-musl/release/pinger-backend ./
+COPY --from=builder /pinger/backend/target/x86_64-unknown-linux-musl/release/pinger-backend ./
 
 # Use an unprivileged user
 USER pinger:pinger
