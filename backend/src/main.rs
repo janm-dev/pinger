@@ -1,5 +1,7 @@
 use std::{
 	collections::HashMap,
+	env,
+	net::{Ipv6Addr, SocketAddrV6},
 	ops::RangeInclusive,
 	sync::{Arc, RwLock},
 };
@@ -148,7 +150,17 @@ async fn main() {
 
 	let app = Router::new().route("/", get(pinger)).with_state(ctx);
 
-	let listener = TcpListener::bind("0.0.0.0:8000").await.unwrap();
+	let listener = TcpListener::bind(SocketAddrV6::new(
+		Ipv6Addr::UNSPECIFIED,
+		env::var("PORT")
+			.ok()
+			.and_then(|v| v.parse().ok())
+			.unwrap_or(8000),
+		0,
+		0,
+	))
+	.await
+	.unwrap();
 
 	info!("Pinger backend starting");
 	axum::serve(listener, app).await.unwrap();

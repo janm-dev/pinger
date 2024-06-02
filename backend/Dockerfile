@@ -41,6 +41,6 @@ COPY --from=builder /pinger/target/x86_64-unknown-linux-musl/release/pinger-back
 USER pinger:pinger
 
 # Expose HTTP port
-EXPOSE 80
+EXPOSE 8000
 
 ENTRYPOINT [ "/pinger/pinger-backend" ]
