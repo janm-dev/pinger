@@ -1,6 +1,7 @@
 use std::{
 	collections::HashMap,
 	env,
+	fmt::{Display, Formatter, Result as FmtResult},
 	net::{Ipv6Addr, SocketAddrV6},
 	ops::RangeInclusive,
 	sync::{Arc, RwLock},
@@ -16,16 +17,23 @@ use axum::{
 use pinger::EncryptedPingInfo;
 use rand::Rng;
 use serde::{Deserialize, Serialize};
+use thiserror::Error;
 use tokio::{
 	net::TcpListener,
 	select,
-	sync::mpsc::{self, Sender},
+	sync::mpsc::{self, error::SendError as ChannelSendError, Sender},
 };
-use tracing::{info, instrument};
+use tracing::{debug, error, info, instrument};
 use tracing_subscriber::{fmt, prelude::*, EnvFilter};
 
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, Serialize, Deserialize)]
 struct Id(pub u16);
+
+impl Display for Id {
+	fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
+		write!(f, "{}", self.0)
+	}
+}
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 struct Token(Vec<u8>);
@@ -82,13 +90,21 @@ enum ClientDownMessage {
 	},
 }
 
+#[derive(Debug, Clone, Error)]
+enum SendError {
+	#[error("id {0} not found")]
+	NoSuchId(Id),
+	#[error(transparent)]
+	ChannelError(#[from] ChannelSendError<ClientDownMessage>),
+}
+
 #[derive(Debug, Default)]
 struct Ctx {
 	connections: RwLock<HashMap<Id, Sender<ClientDownMessage>>>,
 }
 
 impl Ctx {
-	async fn send(&self, to: Id, from: Id, msg: ClientClientMessage) -> Result<(), &'static str> {
+	async fn send(&self, to: Id, from: Id, msg: ClientClientMessage) -> Result<(), SendError> {
 		let Some(dest) = self
 			.connections
 			.read()
@@ -96,12 +112,11 @@ impl Ctx {
 			.get(&to)
 			.cloned()
 		else {
-			return Err("no such id");
+			return Err(SendError::NoSuchId(to));
 		};
 
 		dest.send(ClientDownMessage::FromClient { from, msg })
-			.await
-			.map_err(|_| "sending failed (TODO)")?;
+			.await?;
 
 		Ok(())
 	}
@@ -191,22 +206,43 @@ async fn pinger(State(ctx): State<Arc<Ctx>>, upgrade: WebSocketUpgrade) -> Respo
 					};
 
 					let Ok(msg) = msg else {
-						let _ = sender.send(ClientDownMessage::FromServer{ msg: ServerClientMessage::Error{ details: "error while receiving websocket message".to_string() } }).await;
+						let _ = sender.send(ClientDownMessage::FromServer {
+							msg: ServerClientMessage::Error {
+								details: "error while receiving websocket message".to_string()
+							}
+						}).await;
 						continue;
 					};
 
 					let WsMessage::Text(msg) = msg else {
-						let _ = sender.send(ClientDownMessage::FromServer{ msg: ServerClientMessage::Error{ details: "unsupported message type, only text messages are supported".to_string() } }).await;
+						let _ = sender.send(ClientDownMessage::FromServer {
+							msg: ServerClientMessage::Error {
+								details: "unsupported message type, only text messages are supported".to_string()
+							}
+						}).await;
 						continue;
 					};
 
 					let Ok(msg) = serde_json::from_str::<ClientUpMessage>(&msg) else {
-						let _ = sender.send(ClientDownMessage::FromServer{ msg: ServerClientMessage::Error{ details: "could not deserialize message".to_string() } }).await;
+						let _ = sender.send(ClientDownMessage::FromServer {
+							msg: ServerClientMessage::Error {
+								details: "could not deserialize message".to_string()
+							}
+						}).await;
 						continue;
 					};
 
 					if let Err(e) = ctx.send(msg.to, id, msg.msg).await {
-						todo!("error handling of {e}")
+						match e {
+							err @ SendError::NoSuchId(_) => {
+								let _ = sender.send(ClientDownMessage::FromServer {
+									msg: ServerClientMessage::Error {
+										details: err.to_string()
+									}
+								}).await;
+							},
+							SendError::ChannelError(err) => error!("Error sending websocket message: {err}")
+						}
 					}
 				},
 				opt_msg = receiver.recv() => {
@@ -215,7 +251,7 @@ async fn pinger(State(ctx): State<Arc<Ctx>>, upgrade: WebSocketUpgrade) -> Respo
 					};
 
 					if let Err(e) = ws.send(WsMessage::Text(serde_json::to_string(&msg).expect("failed to serialize message"))).await {
-						todo!("error handling of {e}");
+						debug!("error sending websocket message: {e}");
 					}
 				},
 			}
