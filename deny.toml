@@ -28,12 +28,13 @@ allow = [
 ]
 
 [licenses.private]
-ignore = false
+ignore = true
 
 [bans]
 multiple-versions = "allow"
 wildcards = "deny"
 highlight = "all"
+allow-wildcard-paths = true
 
 [sources]
 unknown-registry = "deny"
