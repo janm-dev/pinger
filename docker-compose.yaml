@@ -1,0 +1,68 @@
+name: pinger
+
+volumes:
+  traefik-certs:
+
+networks:
+  pinger:
+
+services:
+  # Pinger backend server
+  backend:
+    image: ghcr.io/janm-dev/pinger:latest
+    build:
+      context: ./
+      dockerfile: ./backend/Dockerfile
+    restart: always
+    networks:
+      - pinger
+    environment:
+      - PINGER_LOG=debug
+      - PORT=8000
+    labels:
+      - traefik.enable=true
+      # HTTPS/WSS
+      - traefik.http.routers.backend.rule=Host(`${DOMAIN}`)
+      - traefik.http.routers.backend.entrypoints=https
+      - traefik.http.routers.backend.tls.certresolver=letsencrypt
+      - traefik.http.routers.backend.tls.domains[0].main=${DOMAIN}
+      - traefik.http.services.backend.loadbalancer.server.port=8000
+
+  # Traefik reverse proxy for HTTPS and automatic certificate management
+  traefik:
+    image: traefik:2.11
+    restart: always
+    ports:
+      - "80:80/tcp"
+      - "443:443/tcp"
+      # - "443:443/udp" # HTTP/3
+    env_file:
+      - .env
+    volumes:
+      - traefik-certs:/certs
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - pinger
+    command:
+      # General setup
+      - "--log.level=DEBUG"
+      - "--global.checkNewVersion=true"
+      - "--global.sendAnonymousUsage=false"
+      # HTTP entrypoint (redirect to HTTPS)
+      - "--entrypoints.http.address=:80"
+      - "--entrypoints.http.http.redirections.entryPoint.to=https"
+      - "--entrypoints.http.http.redirections.entryPoint.scheme=https"
+      # HTTPS / WSS entrypoint
+      - "--entrypoints.https.address=:443"
+      - "--entrypoints.https.http.tls.certResolver=letsencrypt"
+      - "--entrypoints.https.http.tls.domains[0].main=${DOMAIN}"
+      # Docker provider
+      - "--providers.docker=true"
+      - "--providers.docker.exposedByDefault=false"
+      # Let's Encrypt ACME Certs
+      - "--certificatesResolvers.letsencrypt.acme.email=${ACME_EMAIL}"
+      - "--certificatesresolvers.letsencrypt.acme.caserver=https://acme-staging-v02.api.letsencrypt.org/directory" # Comment out to issue actual real certificates
+      - "--certificatesResolvers.letsencrypt.acme.dnschallenge=true"
+      - "--certificatesResolvers.letsencrypt.acme.dnschallenge.provider=${ACME_DNS_PROVIDER}"
+      - "--certificatesResolvers.letsencrypt.acme.dnschallenge.resolvers=1.1.1.1:53,8.8.8.8:53,9.9.9.9:53"
+      - "--certificatesResolvers.letsencrypt.acme.storage=/certs/certs.json"
