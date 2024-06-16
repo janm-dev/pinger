@@ -237,11 +237,9 @@ async fn pinger(State(ctx): State<Arc<Ctx>>, upgrade: WebSocketUpgrade) -> Respo
 
 					if let Err(e) = ctx.send(msg.to, id, msg.msg).await {
 						match e {
-							err @ SendError::NoSuchId(_) => {
+							SendError::NoSuchId(id) => {
 								let _ = sender.send(ClientDownMessage::FromServer {
-									msg: ServerClientMessage::Error {
-										details: err.to_string()
-									}
+									msg: ServerClientMessage::NoSuchId { id }
 								}).await;
 							},
 							SendError::ChannelError(err) => error!("Error sending websocket message: {err}")
