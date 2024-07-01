@@ -57,6 +57,12 @@ impl Debug for SharedKey {
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub struct EncryptedPingInfo(#[serde(with = "serde_encrypted_ping_info")] [u8; 64]);
 
+impl AsRef<[u8]> for EncryptedPingInfo {
+	fn as_ref(&self) -> &[u8] {
+		&self.0[..]
+	}
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub struct PingInfo {
 	pub ts: Timestamp,
