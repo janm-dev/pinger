@@ -1,5 +1,7 @@
 package dev.janm.pinger;
 
+import dev.janm.pinger.KeyExchange;
+
 public class PingInfo {
 	public long ts;
 	public double lat;
@@ -43,4 +45,9 @@ public class PingInfo {
 	private static native PingInfo decryptFFI(String str, byte[] sharedKey);
 
 	private static native String encryptFFI(long ts, double lat, double lon, float alt, float err, byte[] sharedKey);
+
+	@Override
+	public String toString() {
+		return "PingInfo(ts = " + ts + ", lat = " + lat + ", lon = " + lon + ", alt = " + alt + ", err = " + err + ")";
+	}
 }

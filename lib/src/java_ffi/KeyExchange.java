@@ -1,7 +1,5 @@
 package dev.janm.pinger;
 
-import androidx.annotation.NonNull;
-
 public class KeyExchange {
 	private final byte[] ephemeralSecret;
 
@@ -36,13 +34,13 @@ public class KeyExchange {
 
 		private static native String base64Encode(byte[] sharedSecret);
 
-		@NonNull
-		public String toString() {
-			return base64Encode(sharedSecret);
-		}
-
 		byte[] getSharedSecret() {
 			return this.sharedSecret;
+		}
+
+		@Override
+		public String toString() {
+			return base64Encode(sharedSecret);
 		}
 	}
 }
