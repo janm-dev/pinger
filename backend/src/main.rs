@@ -38,9 +38,6 @@ impl Display for Id {
 	}
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
-struct Token(Vec<u8>);
-
 #[derive(Clone, Copy, Debug, Serialize, Deserialize)]
 struct PublicKey(#[serde(with = "serde_support::public_key")] pinger::PublicKey);
 
