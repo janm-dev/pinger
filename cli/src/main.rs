@@ -22,7 +22,7 @@ use serde::{Deserialize, Serialize};
 use tokio::{select, signal, sync::mpsc};
 use tokio_tungstenite::tungstenite::Message;
 
-const DEFAULT_URL: &str = "wss://pinger.janm.dev/";
+const DEFAULT_URL: &str = "wss://pinger.janm.dev/api";
 
 #[derive(Clone, Copy, Debug, Display, Hash, PartialEq, Eq, Serialize, Deserialize)]
 #[display(fmt = "{_0}")]

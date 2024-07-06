@@ -11,7 +11,7 @@
 	<string name="ping_request_timed_out">Ping to {id} timed out</string>
 	<string name="user_s_ping_id">Ping ID: {id}</string>
 	<string name="send_ping_id_input_label">Ping</string>
-	<string name="api_url">https://pinger.janm.dev/</string>
+	<string name="api_url">https://pinger.janm.dev/api</string>
 	<string name="tile_url">https://tile.openstreetmap.org/{z}/{x}/{y}.png</string>
 	<string name="id_not_found">Id {id} not found</string>
 	<string name="ping_error">Error sending ping:\n{msg}</string>
