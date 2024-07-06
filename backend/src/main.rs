@@ -163,7 +163,7 @@ async fn main() {
 
 	let ctx = Arc::default();
 
-	let app = Router::new().route("/", get(pinger)).with_state(ctx);
+	let app = Router::new().route("/api", get(pinger)).with_state(ctx);
 
 	let listener = TcpListener::bind(SocketAddrV6::new(
 		Ipv6Addr::UNSPECIFIED,
