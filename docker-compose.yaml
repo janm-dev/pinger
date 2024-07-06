@@ -22,7 +22,7 @@ services:
     labels:
       - traefik.enable=true
       # HTTPS/WSS
-      - traefik.http.routers.backend.rule=Host(`${DOMAIN}/api`)
+      - traefik.http.routers.backend.rule=Host(`${DOMAIN}`)
       - traefik.http.routers.backend.entrypoints=https
       - traefik.http.routers.backend.tls.certresolver=letsencrypt
       - traefik.http.routers.backend.tls.domains[0].main=${DOMAIN}
