@@ -26,35 +26,102 @@
 
 		<androidx.constraintlayout.widget.ConstraintLayout
 			android:id="@+id/slideUpLayout"
-			android:layout_width="match_parent"
-			android:layout_height="match_parent">
+			style="@style/bottom_width"
+			android:layout_height="match_parent"
+			android:layout_gravity="center_horizontal">
 
 			<LinearLayout
 				android:id="@+id/slideUpLayoutInner"
 				android:layout_width="match_parent"
-				android:layout_height="wrap_content"
+				android:layout_height="168dp"
 				android:background="@drawable/slideup_background"
 				android:elevation="8dp"
 				android:orientation="horizontal"
 				app:layout_constraintBottom_toBottomOf="parent"
 				app:layout_constraintEnd_toEndOf="parent"
-				app:layout_constraintStart_toStartOf="parent">
+				app:layout_constraintStart_toStartOf="parent"
+				app:layout_constraintTop_toTopOf="parent"
+				app:layout_constraintVertical_bias="1.0">
 
 				<TextView
-					android:id="@+id/textView"
+					android:id="@+id/slideUpText"
 					android:layout_width="0dp"
-					android:layout_height="wrap_content"
+					android:layout_height="52dp"
+					android:layout_margin="8dp"
 					android:layout_weight="1"
-					android:text="TODO"
-					android:textSize="16sp" />
+					android:drawableStart="@drawable/ping_incoming"
+					android:drawablePadding="4dp"
+					android:gravity="center_vertical"
+					android:text="@string/ping_error"
+					android:textColor="@color/black"
+					android:textSize="16sp"
+					app:drawableTint="@color/black" />
 			</LinearLayout>
+		</androidx.constraintlayout.widget.ConstraintLayout>
 
+		<androidx.constraintlayout.widget.ConstraintLayout
+			android:id="@+id/decisionLayout"
+			style="@style/bottom_width"
+			android:layout_height="match_parent"
+			android:layout_gravity="center_horizontal">
+
+			<LinearLayout
+				android:id="@+id/decisionLayoutInner"
+				android:layout_width="match_parent"
+				android:layout_height="168dp"
+				android:background="@drawable/slideup_background"
+				android:backgroundTint="@color/info"
+				android:elevation="8dp"
+				android:gravity="end"
+				android:orientation="horizontal"
+				app:layout_constraintBottom_toBottomOf="parent"
+				app:layout_constraintEnd_toEndOf="parent"
+				app:layout_constraintStart_toStartOf="parent"
+				app:layout_constraintTop_toTopOf="parent"
+				app:layout_constraintVertical_bias="1.0">
+
+				<TextView
+					android:id="@+id/decisionText"
+					android:layout_width="0dp"
+					android:layout_height="52dp"
+					android:layout_margin="10dp"
+					android:layout_weight="1"
+					android:gravity="center"
+					android:text="@string/ping_request_received"
+					android:textAlignment="center"
+					android:textColor="@color/white"
+					android:textSize="20sp" />
+
+				<ImageButton
+					android:id="@+id/acceptButton"
+					android:layout_width="52dp"
+					android:layout_height="52dp"
+					android:layout_margin="10dp"
+					android:background="@drawable/circle"
+					android:backgroundTint="@color/primary"
+					android:contentDescription="@string/accept_ping"
+					android:elevation="4dp"
+					app:srcCompat="@drawable/accept" />
+
+				<ImageButton
+					android:id="@+id/rejectButton"
+					android:layout_width="52dp"
+					android:layout_height="52dp"
+					android:layout_margin="10dp"
+					android:background="@drawable/circle"
+					android:backgroundTint="@color/bad"
+					android:contentDescription="@string/reject_ping"
+					android:elevation="4dp"
+					app:srcCompat="@drawable/reject" />
+			</LinearLayout>
 		</androidx.constraintlayout.widget.ConstraintLayout>
 
 		<androidx.constraintlayout.widget.ConstraintLayout
 			android:id="@+id/bottomLayout"
-			android:layout_width="match_parent"
-			android:layout_height="match_parent">
+			style="@style/bottom_width"
+			android:layout_height="match_parent"
+			android:layout_gravity="center_horizontal"
+			android:elevation="8dp">
 
 			<LinearLayout
 				android:id="@+id/bottomLayoutWrapper"
@@ -106,6 +173,7 @@
 					android:id="@+id/mapAttribution"
 					android:layout_width="match_parent"
 					android:layout_height="wrap_content"
+					android:layout_marginBottom="4sp"
 					android:text="@string/attribution_text"
 					android:textAlignment="center"
 					android:textColor="@color/white"
@@ -115,18 +183,18 @@
 		</androidx.constraintlayout.widget.ConstraintLayout>
 
 		<androidx.constraintlayout.widget.ConstraintLayout
-			android:id="@+id/myIdLayout"
+			android:id="@+id/floatingLayout"
 			android:layout_width="match_parent"
 			android:layout_height="match_parent"
 			android:fitsSystemWindows="true">
 
 			<LinearLayout
-				android:id="@+id/myIdLayoutInner"
+				android:id="@+id/myIdLayout"
 				android:layout_width="wrap_content"
 				android:layout_height="wrap_content"
 				android:layout_marginStart="16dp"
 				android:layout_marginTop="16dp"
-				android:background="@drawable/id_background"
+				android:background="@drawable/floating_background"
 				android:elevation="16dp"
 				android:gravity="center"
 				android:orientation="horizontal"
@@ -136,16 +204,42 @@
 				<TextView
 					android:id="@+id/myPingId"
 					android:layout_width="0dp"
-					android:layout_height="wrap_content"
-					android:layout_margin="16dp"
+					android:layout_height="28sp"
+					android:layout_margin="16sp"
 					android:layout_weight="1"
+					android:ellipsize="none"
 					android:fontFamily="sans-serif"
 					android:hint="@string/user_s_ping_id"
-					android:maxLength="3"
-					android:textAlignment="textStart"
+					android:singleLine="true"
+					android:textAlignment="center"
 					android:textColor="@color/white"
 					android:textSize="20sp"
 					android:textStyle="bold" />
+			</LinearLayout>
+
+			<LinearLayout
+				android:id="@+id/showLocationLayout"
+				android:layout_width="wrap_content"
+				android:layout_height="wrap_content"
+				android:layout_marginEnd="16dp"
+				android:layout_marginTop="16dp"
+				android:background="@drawable/floating_background"
+				android:elevation="16dp"
+				android:gravity="center"
+				android:orientation="horizontal"
+				app:layout_constraintEnd_toEndOf="parent"
+				app:layout_constraintTop_toTopOf="parent">
+
+				<ImageButton
+					android:id="@+id/showLocationButton"
+					android:layout_width="60sp"
+					android:layout_height="60sp"
+					android:layout_weight="1"
+					android:background="@drawable/floating_background"
+					android:contentDescription="@string/go_to_own_location"
+					android:padding="8sp"
+					android:scaleType="fitCenter"
+					app:srcCompat="@drawable/ping_incoming" />
 			</LinearLayout>
 		</androidx.constraintlayout.widget.ConstraintLayout>
 

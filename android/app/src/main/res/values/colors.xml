@@ -6,4 +6,6 @@
 	<color name="water">#FFAAD3DF</color>
 	<color name="black">#FF000000</color>
 	<color name="white">#FFFFFFFF</color>
+	<color name="bad">#FFDF4444</color>
+	<color name="info">#FF354A79</color>
 </resources>

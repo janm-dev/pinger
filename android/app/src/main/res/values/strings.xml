@@ -4,13 +4,29 @@
 	<string name="attribution_text">Map © OpenStreetMap contributors (ODbL)</string>
 	<string name="send_ping_id_input_hint">Ping ID</string>
 	<string name="send_ping_button_label">Send Ping</string>
-	<string name="hello_blank_fragment">Hello blank fragment</string>
 	<string name="ping_request_received">Ping from {id} received</string>
 	<string name="ping_request_sent">Ping sent to {id}</string>
 	<string name="ping_request_accepted">{id} accepted your Ping</string>
 	<string name="ping_request_rejected">{id} rejected your Ping</string>
-	<string name="ping_request_timedout">Ping to {id} timed out</string>
+	<string name="ping_request_timed_out">Ping to {id} timed out</string>
 	<string name="user_s_ping_id">Ping ID: {id}</string>
 	<string name="send_ping_id_input_label">Ping</string>
-	<string name="api_url">ws://localhost:8000/</string>
+	<string name="api_url">https://pinger.janm.dev/</string>
+	<string name="tile_url">https://tile.openstreetmap.org/{z}/{x}/{y}.png</string>
+	<string name="id_not_found">Id {id} not found</string>
+	<string name="ping_error">Error sending ping:\n{msg}</string>
+	<string name="go_to_own_location">Go to you location</string>
+	<string name="permission_explanation_ping">Pinger needs permission to access your location to send it to the people you ping.</string>
+	<string name="permission_explanation_map">Pinger needs permission to access your location to show it on the map.</string>
+	<string name="accept_ping">Accept ping</string>
+	<string name="reject_ping">Reject ping</string>
+	<plurals name="ping_from_seconds">
+		<item quantity="one">Ping from {id}, {s} second ago.</item>
+		<item quantity="other">Ping from {id}, {s} seconds ago.</item>
+	</plurals>
+	<plurals name="ping_from_minutes">
+		<item quantity="one">Ping from {id}, {m} minute ago.</item>
+		<item quantity="other">Ping from {id}, {m} minutes ago.</item>
+	</plurals>
+	<string name="ping_from_over_1h">Ping from {id}, over an hour ago.</string>
 </resources>

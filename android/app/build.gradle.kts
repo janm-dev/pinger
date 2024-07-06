@@ -1,8 +1,7 @@
-import org.jetbrains.kotlin.cli.jvm.main
-
 plugins {
 	alias(libs.plugins.android.application)
 	alias(libs.plugins.jetbrains.kotlin.android)
+	alias(libs.plugins.serialization)
 }
 
 android {
@@ -82,7 +81,5 @@ dependencies {
 	implementation(libs.androidx.navigation.ui.ktx)
 	implementation(libs.osmdroid.android)
 	implementation(libs.okhttp)
-	testImplementation(libs.junit)
-	androidTestImplementation(libs.androidx.junit)
-	androidTestImplementation(libs.androidx.espresso.core)
+	implementation(libs.json)
 }
