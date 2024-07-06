@@ -39,7 +39,6 @@ import java.util.TimerTask
 
 private const val MIN_ZOOM_LEVEL = 2.0
 private const val MAX_ZOOM_LEVEL = 22.0
-private const val REQUEST_PERMISSIONS_REQUEST_CODE = 1
 private val INITIAL_LOCATION = BoundingBox(75.0, 0.0, -75.0, -0.0)
 private val MAP_QUALITY = MapQuality.UNREADABLE
 

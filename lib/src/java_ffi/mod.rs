@@ -104,8 +104,7 @@ pub extern "system" fn Java_dev_janm_pinger_PingInfo_decryptFFI<'e>(
 			.str()?;
 		let info = PingInfo::decrypt(EncryptedPingInfo(buf[..n].try_into().str()?), key).str()?;
 
-		Ok(env
-			.new_object(class, "(JDDFF)V", &[
+		Ok(env.new_object(class, "(JDDFF)V", &[
 				JValueGen::Long(rust_u64_to_java(info.ts.0)),
 				JValueGen::Double(info.lat.0),
 				JValueGen::Double(info.lon.0),
