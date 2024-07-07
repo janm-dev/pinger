@@ -42,13 +42,6 @@ impl Display for Id {
 struct PublicKey(#[serde(with = "serde_support::public_key")] pinger::PublicKey);
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
-enum Message {
-	ServerClient(ServerClientMessage),
-	ClientClientIncoming { to: Id, msg: ClientClientMessage },
-	ClientClientOutgoing { from: Id, msg: ClientClientMessage },
-}
-
-#[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case", tag = "msg")]
 enum ServerClientMessage {
 	Connected { id: Id },
