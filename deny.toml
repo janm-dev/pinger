@@ -25,6 +25,7 @@ allow = [
 	"Apache-2.0",       # https://spdx.org/licenses/Apache-2.0
 	"Unicode-DFS-2016", # https://spdx.org/licenses/Unicode-DFS-2016
 	"Unicode-3.0",      # https://spdx.org/licenses/Unicode-3.0
+	"MPL-2.0",          # https://spdx.org/licenses/MPL-2.0
 ]
 
 [licenses.private]
