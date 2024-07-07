@@ -1,9 +1,11 @@
 package dev.janm.pinger
 
 import android.Manifest
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.location.Location
 import android.location.LocationManager
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.system.Os
@@ -18,6 +20,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.DrawableRes
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.content.res.AppCompatResources
+import androidx.browser.customtabs.CustomTabsIntent
 import androidx.dynamicanimation.animation.DynamicAnimation
 import androidx.dynamicanimation.animation.SpringAnimation
 import org.osmdroid.OsmdroidBuildInfo
@@ -34,8 +37,10 @@ import java.util.logging.Logger
 import dev.janm.pinger.PingInfo
 import org.osmdroid.util.GeoPoint
 import org.osmdroid.views.overlay.Marker
+import java.io.InputStreamReader
 import java.util.Timer
 import java.util.TimerTask
+import kotlin.system.exitProcess
 
 private const val MIN_ZOOM_LEVEL = 2.0
 private const val MAX_ZOOM_LEVEL = 22.0
@@ -48,10 +53,59 @@ class MainActivity: AppCompatActivity() {
 	private lateinit var connection: Pinger
 	private val mapUpdateTimer = Timer("PingerMapUpdates", true)
 
+	init {
+		ProcessBuilder()
+			.command("logcat", "-c")
+			.start()
+			.waitFor()
+	}
+
 	override fun onCreate(savedInstanceState: Bundle?) {
 		super.onCreate(savedInstanceState)
 
 		logger = Logger.getLogger(resources.getString(R.string.app_name))
+
+		Thread.setDefaultUncaughtExceptionHandler { t, e ->
+			val app = try {
+				"${resources.getString(R.string.app_name)}/${packageManager.getPackageInfo(packageName, 0).versionName} (Android ${Build.VERSION.RELEASE})"
+			} catch (e: Exception) {
+				"Pinger/? (Android ${Build.VERSION.RELEASE})"
+			}
+
+			var rawLogs = ""
+
+			try {
+				val process = ProcessBuilder()
+					.command("logcat", "-d")
+					.redirectErrorStream(true)
+					.start()
+
+				InputStreamReader(process.inputStream).forEachLine {
+					rawLogs = "${it.trim()}\n$rawLogs"
+				}
+			} catch (_: Exception) {
+			}
+
+			try {
+				val formattedLogs = "Thread $t threw uncaught exception $e\n${e.stackTraceToString()}\n$rawLogs"
+
+				var uri = "https://pinger.janm.dev/bug?oops&app=${Uri.encode(app)}&logs=${Uri.encode(formattedLogs)}"
+
+				if (uri.length > 35000) {
+					uri = uri.slice(0..35000) + "\n[logs truncated]"
+				}
+
+				CustomTabsIntent.Builder()
+					.setColorScheme(CustomTabsIntent.COLOR_SCHEME_DARK)
+					.build()
+					.launchUrl(this, Uri.parse(uri))
+
+				logger.severe("Uncaught exception: $e")
+				exitProcess(1)
+			} catch (_: Exception) {
+				exitProcess(2)
+			}
+		}
 
 		val userAgent = "${resources.getString(R.string.app_name)}/${packageManager.getPackageInfo(packageName, 0).versionName}" +
 			" (Android ${Build.VERSION.RELEASE};" +
@@ -243,8 +297,8 @@ class MainActivity: AppCompatActivity() {
 			.onConnected { logger.info("connected as id $it") }
 			.onConnected { idIndicator.post { idIndicator.text = getString(R.string.user_s_ping_id).replace(Regex.fromLiteral("{id}"), it.getValue().toString()) } }
 			.onConnected { pingButton.post { pingButton.isEnabled = true } }
-			.onPing { id, info -> logger.info("ping received from $id: $info") }
-			.onPing { id, info -> runOnUiThread {
+			.onPing { (id, info) -> logger.info("ping received from $id: $info") }
+			.onPing { (id, info) -> runOnUiThread {
 				val marker = Marker(map)
 				val elapsed = System.currentTimeMillis() / 1000 - info.ts
 				marker.position = GeoPoint(info.lat, info.lon, info.alt.toDouble())

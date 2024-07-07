@@ -14,10 +14,9 @@ import dev.janm.pinger.KeyExchange.SharedKey
 import java.util.Timer
 import java.util.TimerTask
 import java.util.concurrent.ConcurrentHashMap
-import java.util.function.BiConsumer
 
 const val BASE_TIMEOUT: Long = 10000
-const val DECISION_TIMEOUT: Long = 30000
+const val DECISION_TIMEOUT: Long = 3000//0
 
 private enum class State {
 	Connecting,
@@ -54,7 +53,7 @@ private class Exchange(
 public class Pinger private constructor(
 	private val server: URL,
 	private val userAgent: String?,
-	private val onPing: Iterable<BiConsumer<Id, PingInfo>>,
+	private val onPing: Iterable<Consumer<Pair<Id, PingInfo>>>,
 	private val onPingTimeout: Iterable<Consumer<Id>>,
 	private val onError: Iterable<Consumer<String>>,
 	private val onIdNotFound: Iterable<Consumer<Id>>,
@@ -195,7 +194,7 @@ public class Pinger private constructor(
 		val message = try {
 			json.decodeFromString<MessageFromServer>(text)
 		} catch (e: Exception) {
-			logger.warning("invalid data received from API: $e")
+			logger.severe("invalid data received from API: $e")
 			return
 		}
 
@@ -233,7 +232,7 @@ public class Pinger private constructor(
 
 					try {
 						val pingInfo = message.getInfo(exchange.keyExchange!!.diffieHellman(exchange.theirPublicKey))
-						onPing.forEach { it.accept(message.from, pingInfo) }
+						onPing.forEach { it.accept(message.from to pingInfo) }
 						exchanges.remove(message.from)
 						connection.send(MessageToServer.PingAck(message.from).toString())
 					} catch (e: Exception) {
@@ -326,18 +325,15 @@ public class Pinger private constructor(
 				}
 			}
 		} catch (e: IllegalStateException) {
-			logger.warning("connection state error: $e")
-			reconnect()
+			throw RuntimeException("connection state error", e)
 		} catch (e: Exception) {
-			logger.warning("exception in pinger connection: $e")
-			reconnect()
+			throw RuntimeException("exception in pinger connection", e)
 		}
 	}
 
 	public class Builder(private val server: URL) {
-		private val handlerLogger = Logger.getLogger("PingerConnectionEventHandler")
 		private var userAgent: String? = null
-		private var onPing: ArrayList<BiConsumer<Id, PingInfo>> = ArrayList()
+		private var onPing: ArrayList<Consumer<Pair<Id, PingInfo>>> = ArrayList()
 		private var onPingTimeout: ArrayList<Consumer<Id>> = ArrayList()
 		private var onError: ArrayList<Consumer<String>> = ArrayList()
 		private var onIdNotFound: ArrayList<Consumer<Id>> = ArrayList()
@@ -354,11 +350,11 @@ public class Pinger private constructor(
 			return this
 		}
 
-		public fun onPing(callback: BiConsumer<Id, PingInfo>): Builder {
-			onPing.add { id, info -> try {
-				callback.accept(id, info)
+		public fun onPing(callback: Consumer<Pair<Id, PingInfo>>): Builder {
+			onPing.add { it -> try {
+				callback.accept(it)
 			} catch (e: Exception) {
-				handlerLogger.warning("Exception in event handler: $e")
+				throw RuntimeException("Exception in onPing handler", e)
 			} }
 			return this
 		}
@@ -367,7 +363,7 @@ public class Pinger private constructor(
 			onPingTimeout.add { try {
 				callback.accept(it)
 			} catch (e: Exception) {
-				handlerLogger.warning("Exception in event handler: $e")
+				throw RuntimeException("Exception in onPingTimeout handler", e)
 			} }
 			return this
 		}
@@ -376,7 +372,7 @@ public class Pinger private constructor(
 			onError.add { try {
 				callback.accept(it)
 			} catch (e: Exception) {
-				handlerLogger.warning("Exception in event handler: $e")
+				throw RuntimeException("Exception in onError handler", e)
 			} }
 			return this
 		}
@@ -385,7 +381,7 @@ public class Pinger private constructor(
 			onIdNotFound.add { try {
 				callback.accept(it)
 			} catch (e: Exception) {
-				handlerLogger.warning("Exception in event handler: $e")
+				throw RuntimeException("Exception in onIdNotFound handler", e)
 			} }
 			return this
 		}
@@ -394,7 +390,7 @@ public class Pinger private constructor(
 			onConnected.add { try {
 				callback.accept(it)
 			} catch (e: Exception) {
-				handlerLogger.warning("Exception in event handler: $e")
+				throw RuntimeException("Exception in onConnected handler", e)
 			} }
 			return this
 		}
@@ -403,7 +399,7 @@ public class Pinger private constructor(
 			onRejected.add { try {
 				callback.accept(it)
 			} catch (e: Exception) {
-				handlerLogger.warning("Exception in event handler: $e")
+				throw RuntimeException("Exception in onRejected handler", e)
 			} }
 			return this
 		}
@@ -412,7 +408,7 @@ public class Pinger private constructor(
 			onResponseTimeout.add { try {
 				callback.accept(it)
 			} catch (e: Exception) {
-				handlerLogger.warning("Exception in event handler: $e")
+				throw RuntimeException("Exception in onResponseTimeout handler", e)
 			} }
 			return this
 		}
@@ -421,7 +417,7 @@ public class Pinger private constructor(
 			onAcknowledged.add { try {
 				callback.accept(it)
 			} catch (e: Exception) {
-				handlerLogger.warning("Exception in event handler: $e")
+				throw RuntimeException("Exception in onAcknowledged handler", e)
 			} }
 			return this
 		}
@@ -430,7 +426,7 @@ public class Pinger private constructor(
 			onAcknowledgeTimeout.add { try {
 				callback.accept(it)
 			} catch (e: Exception) {
-				handlerLogger.warning("Exception in event handler: $e")
+				throw RuntimeException("Exception in onAcknowledgeTimeout handler", e)
 			} }
 			return this
 		}
@@ -439,7 +435,7 @@ public class Pinger private constructor(
 			onRequest.add { try {
 				callback.accept(it)
 			} catch (e: Exception) {
-				handlerLogger.warning("Exception in event handler: $e")
+				throw RuntimeException("Exception in onRequest handler", e)
 			} }
 			return this
 		}
@@ -448,7 +444,7 @@ public class Pinger private constructor(
 			onDecisionTimeout.add { try {
 				callback.accept(it)
 			} catch (e: Exception) {
-				handlerLogger.warning("Exception in event handler: $e")
+				throw RuntimeException("Exception in onDecisionTimeout handler", e)
 			} }
 			return this
 		}

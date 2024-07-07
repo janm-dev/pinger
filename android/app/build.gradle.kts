@@ -82,4 +82,5 @@ dependencies {
 	implementation(libs.osmdroid.android)
 	implementation(libs.okhttp)
 	implementation(libs.json)
+	implementation(libs.androidx.browser)
 }
