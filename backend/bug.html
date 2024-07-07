@@ -39,6 +39,11 @@
 				margin: 1rem auto;
 			}
 
+			em {
+				font-style: normal;
+				font-weight: bold;
+			}
+
 			button {
 				color: var(--black);
 				background-color: var(--primary);
@@ -186,6 +191,10 @@
 			#preview {
 				height: 10.5em;
 				height: 10.5lh;
+			}
+
+			.length {
+				font-size: 0.65em;
 			}
 
 			#consent {
@@ -361,7 +370,9 @@
 		</style>
 	</head>
 	<body>
-		<h1>Pinger Bug Report</h1>
+		<h1 class="no-oops">Pinger Bug Report</h1>
+		<h1 class="yes-oops">Oops, Pinger crashed</h1>
+		<p class="yes-oops">We would appreciate a bug report</p>
 
 		<section class="section">
 			<h2>Extra information (optional)</h2>
@@ -405,6 +416,14 @@
 		<section class="section">
 			<label for="preview"><h2>Report Preview</h2></label>
 			<textarea class="text" name="preview" id="preview" readonly></textarea>
+			<p class="length">
+				<em
+					>Encoded length: <span id="length">0</span> /
+					<span id="length-limit">?</span>.</em
+				>
+				If too long, report may be cut off - consider copy-pasting this preview
+				instead of the prefilled text <em>after</em> submitting.
+			</p>
 
 			<div id="consent">
 				<input type="checkbox" id="consent-check" onchange="update()" />
@@ -450,9 +469,22 @@
 		</section>
 
 		<script>
+			const EMAIL_URL_LIMIT = 3500;
+			const GH_URL_LIMIT = 8000;
+
 			const query = new URLSearchParams(location.search);
 			const logs = query.get("logs");
 			const app = query.get("app");
+			const oops = query.has("oops");
+
+			const make_github_url = (body) =>
+				`https://github.com/janm-dev/pinger/issues/new?title=${window.encodeURIComponent(
+					`[BUG] ${app}`
+				)}&body=${window.encodeURIComponent(body)}`;
+			const make_mailto_url = (body) =>
+				`mailto:dev+pinger@janm.dev?subject=${window.encodeURIComponent(
+					`[BUG] ${app}`
+				)}&body=${window.encodeURIComponent(body)}`;
 
 			const messages = document.getElementById("messages");
 			const redactions = document.getElementById("redactions");
@@ -461,16 +493,26 @@
 			const report_github = document.getElementById("report-github");
 			const report_email = document.getElementById("report-email");
 			const preview = document.getElementById("preview");
+			const length = document.getElementById("length");
+			const length_limit = document.getElementById("length-limit");
 			const consent_check = document.getElementById("consent-check");
 			const consent_wrapper = document.getElementById("consent");
 			const no_logs = [...document.getElementsByClassName("no-logs")];
 			const yes_logs = [...document.getElementsByClassName("yes-logs")];
+			const no_oops = [...document.getElementsByClassName("no-oops")];
+			const yes_oops = [...document.getElementsByClassName("yes-oops")];
+
+			if (oops) {
+				no_oops.forEach((e) => e.classList.add("hidden"));
+			} else {
+				yes_oops.forEach((e) => e.classList.add("hidden"));
+			}
 
 			if (logs) {
 				include_logs.checked = true;
 				no_logs.forEach((n) => n.classList.add("hidden"));
 
-				for (const line of logs.split("\n")) {
+				for (const line of logs.split(/\n/gu)) {
 					if (line.trim() !== "") {
 						messages.insertAdjacentHTML(
 							"beforeend",
@@ -500,13 +542,12 @@
 				report_email.dataset["disabled"] = true;
 				report_github.dataset["disabled"] = true;
 
-				const title = encodeURIComponent(`[BUG] ${app}`);
-				const encoded_report = encodeURIComponent(report);
-				let url = `https://github.com/janm-dev/pinger/issues/new?title=${title}&body=${encoded_report}`;
+				let url = make_github_url(report);
 
-				if (url.length > 8000) {
-					url = url.substring(0, 8000);
-					url += encodeURIComponent("\n\n***report truncated***\n");
+				if (url.length > GH_URL_LIMIT) {
+					url = url.substring(0, GH_URL_LIMIT);
+					url = url.substring(0, url.lastIndexOf("%"));
+					url += encodeURIComponent(`\n\n***report truncated***\n`);
 				}
 
 				window.open(url, "_blank", "noreferrer");
@@ -522,9 +563,13 @@
 				report_email.dataset["disabled"] = true;
 				report_github.dataset["disabled"] = true;
 
-				const title = encodeURIComponent(`[BUG] ${app}`);
-				const encoded_report = encodeURIComponent(report);
-				const url = `mailto:dev+pinger@janm.dev?subject=${title}&body=${encoded_report}`;
+				let url = make_mailto_url(report);
+
+				if (url.length > EMAIL_URL_LIMIT) {
+					url = url.substring(0, EMAIL_URL_LIMIT);
+					url = url.substring(0, url.lastIndexOf("%"));
+					url += encodeURIComponent(`\n\n***report truncated***\n`);
+				}
 
 				window.open(url, "_blank", "noreferrer");
 			};
@@ -553,34 +598,45 @@
 						redacted_lines += 1;
 					} else {
 						if (redacted_lines === 0) {
-							logs.push(line);
+							logs.push(`${line}\n`);
 						} else if (redacted_lines === 1) {
-							logs.push("[line redacted]", line);
+							logs.push(`[line redacted]\n`, `${line}\n`);
 							redacted_lines = 0;
 						} else {
-							logs.push(`[${redacted_lines} lines redacted]`, line);
+							logs.push(`[${redacted_lines} lines redacted]\n`, `${line}\n`);
 							redacted_lines = 0;
 						}
 					}
 				}
 
 				if (redacted_lines === 1) {
-					logs.push("[line redacted]");
+					logs.push(`[line redacted]\n`);
 				} else if (redacted_lines > 1) {
-					logs.push(`[${redacted_lines} lines redacted]`);
+					logs.push(`[${redacted_lines} lines redacted]\n`);
 				}
 
-				report = `# Pinger Bug Report ${new Date().toISOString()}\n\n`;
+				report = `# Pinger Bug Report\n\n`;
 				report += app === null || app === "" ? "" : `Version: ${app}\n\n`;
 				report +=
 					details.value === ""
 						? ""
 						: `## Details\n\n${details.value.trim()}\n\n`;
 				report += include_logs.checked
-					? `## Logs\n\n\`\`\`txt\n${logs.join("\n")}\n\`\`\`\n\n`
+					? `## Logs\n\n\`\`\`txt\n${logs.join()}\`\`\`\n\n`
 					: "";
 
+				const nf = new Intl.NumberFormat("en");
+
 				preview.value = report.trim();
+				length.innerText = nf.format(
+					Math.max(
+						make_github_url(report).length,
+						make_mailto_url(report).length
+					)
+				);
+				length_limit.innerText = nf.format(
+					Math.min(GH_URL_LIMIT, EMAIL_URL_LIMIT)
+				);
 
 				if (consent_check.checked) {
 					delete report_github.dataset["disabled"];
