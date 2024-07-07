@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>Pinger Bug Report</title>
+		<style>
+			:root {
+				--primary: #00f8b9;
+				--secondary: #111827;
+				--attention: #ff7937;
+				--white: #ffffff;
+				--black: #000000;
+				--gray: #969aa2;
+				--width: 80ch;
+				--fonts: "Helvetica Neue", "Helvetica", "Roboto", "Fira Sans",
+					"Droid Sans", sans-serif;
+			}
+
+			html {
+				background-color: var(--secondary);
+				color: var(--white);
+				padding: 0;
+				margin: 0;
+				width: 100%;
+				min-width: 100px;
+				font-family: var(--fonts);
+			}
+
+			body {
+				width: var(--width);
+				margin: 0 auto;
+				font-size: 1rem;
+				padding: 1rem;
+			}
+
+			label {
+				display: block;
+				margin: 1rem auto;
+			}
+
+			button {
+				color: var(--black);
+				background-color: var(--primary);
+				font-size: 0.85rem;
+				font-weight: bold;
+				text-transform: uppercase;
+				border: none;
+				border-radius: 0.25rem;
+				height: 2.5em;
+				width: 25ch;
+				padding: 1ch;
+				margin: 0;
+				text-align: center;
+				cursor: pointer;
+			}
+
+			button[data-disabled] {
+				background-color: var(--gray);
+			}
+
+			*:focus {
+				outline: var(--primary) solid 0.25rem;
+			}
+
+			.link {
+				color: var(--primary);
+			}
+
+			.section {
+				margin-bottom: 2.5rem;
+			}
+
+			.text {
+				background-color: var(--secondary);
+				color: var(--white);
+				height: 5.5em;
+				height: 5.5lh;
+				width: calc(var(--width) - 2rem - 2px);
+				font-size: 1rem;
+				resize: none;
+				padding: 1rem;
+				border-radius: 1rem;
+				border: 1px solid var(--primary);
+				scrollbar-width: thin;
+				font-family: var(--fonts);
+			}
+
+			#details::placeholder {
+				color: var(--gray);
+			}
+
+			.hidden {
+				display: none !important;
+			}
+
+			#logs {
+				width: calc(var(--width) - 2rem - 2px);
+				max-height: 10.5em;
+				max-height: 10.5lh;
+				display: grid;
+				padding: 1rem;
+				border-radius: 1rem;
+				border: 1px solid var(--primary);
+				gap: 1rem;
+				grid-template-columns: 1fr;
+				grid-template-rows: auto 1fr;
+				grid-template-areas: "header" "wrapper";
+			}
+
+			#logs-preheader {
+				display: none;
+			}
+
+			#logs-header {
+				grid-area: header;
+				display: grid;
+				padding: 0;
+				margin: 0;
+				grid-template-columns: 5em 1fr;
+				grid-template-rows: 1fr;
+				grid-template-areas: "redactions messages";
+			}
+
+			#logs-wrapper {
+				grid-area: wrapper;
+				display: grid;
+				padding: 0;
+				margin: 0;
+				scrollbar-width: thin;
+				overflow-y: scroll;
+				grid-template-columns: 5em 1fr;
+				grid-template-rows: 1fr;
+				grid-template-areas: "redactions messages";
+			}
+
+			#header-redactions {
+				grid-area: redactions;
+				padding: 0;
+				margin: 0;
+			}
+
+			#header-messages {
+				grid-area: messages;
+				padding: 0;
+				margin: 0;
+			}
+
+			#redactions {
+				grid-area: redactions;
+				list-style: none;
+				padding: 0;
+				margin: 0;
+				text-align: center;
+				display: grid;
+				grid-template-columns: auto;
+				grid-template-rows: repeat(auto-fit, 1.3em);
+			}
+
+			#messages {
+				grid-area: messages;
+				list-style: none;
+				padding: 0;
+				margin: 0;
+				display: grid;
+				scrollbar-width: thin;
+				overflow-x: scroll;
+				overflow-y: hidden;
+				grid-template-columns: auto;
+				grid-template-rows: repeat(auto-fit, 1.3em);
+			}
+
+			.redaction {
+				height: 1.3em;
+			}
+
+			.message {
+				text-wrap: nowrap;
+				height: 1.3em;
+			}
+
+			.redacted {
+				color: var(--gray);
+			}
+
+			#preview {
+				height: 10.5em;
+				height: 10.5lh;
+			}
+
+			#consent {
+				display: flex;
+				padding: 1rem;
+				gap: 1rem;
+				border-radius: 1rem;
+				color: var(--white);
+				background-color: var(--secondary);
+				transition: color 0.5s linear;
+				transition: background-color 0.5s linear;
+			}
+
+			#consent[data-missing] {
+				color: var(--black);
+				background-color: var(--attention);
+			}
+
+			#consent input {
+				margin: auto 0;
+			}
+
+			#consent label {
+				margin: 0;
+			}
+
+			#submit {
+				display: grid;
+				grid-template-rows: 1fr;
+				grid-template-columns: 1fr 1fr;
+			}
+
+			.submit {
+				text-align: center;
+				width: 30ch;
+				margin: 0 auto;
+			}
+
+			.submit button {
+				margin: 0.5rem;
+			}
+
+			.submit p {
+				font-size: 0.85rem;
+				margin: 0;
+			}
+
+			@media screen and (max-width: 800px) {
+				:root {
+					--width: 60ch;
+				}
+			}
+
+			@media screen and (max-width: 600px) {
+				:root {
+					--width: 80vw;
+					--width: 80dvw;
+				}
+
+				button {
+					height: 3.75em;
+					width: 15ch;
+				}
+
+				#consent {
+					padding: 1rem 0;
+				}
+
+				.submit {
+					width: 20ch;
+				}
+			}
+
+			@media screen and (max-width: 450px) {
+				:root {
+					font-size: 0.8rem;
+				}
+
+				#logs {
+					gap: 0;
+				}
+
+				#logs-preheader {
+					font-size: 1em;
+					margin: 1em 0 0.5em;
+					display: block;
+				}
+
+				#logs-header {
+					display: none;
+				}
+
+				#logs-wrapper {
+					grid-template-columns: auto 1fr;
+				}
+
+				.redaction {
+					margin: auto 0.5rem auto 0;
+				}
+			}
+
+			@media screen and (max-width: 360px) {
+				.words {
+					font-size: 0.8em;
+				}
+
+				button {
+					height: 2.5em;
+					width: 25ch;
+				}
+
+				.submit {
+					width: 30ch;
+				}
+
+				#submit {
+					display: grid;
+					row-gap: 1.5rem;
+					grid-template-rows: 1fr 1fr;
+					grid-template-columns: 1fr;
+				}
+
+				.submit p {
+					font-size: 0.75rem;
+				}
+			}
+
+			@media screen and (max-width: 280px) {
+				button {
+					height: 3.75em;
+					width: 15ch;
+				}
+
+				.submit {
+					width: 20ch;
+				}
+			}
+
+			@media screen and (max-width: 180px) {
+				:root {
+					font-size: 0.7rem;
+				}
+
+				#consent {
+					flex-direction: column;
+				}
+
+				#consent input {
+					margin: 0 auto;
+				}
+			}
+
+			@media screen and (max-width: 150px) {
+				:root {
+					font-size: 0.65rem;
+				}
+
+				button {
+					width: auto;
+					height: auto;
+				}
+
+				.submit {
+					width: auto;
+				}
+			}
+
+			@media screen and (max-width: 100px) {
+				:root {
+					--width: 80px;
+				}
+			}
+		</style>
+	</head>
+	<body>
+		<h1>Pinger Bug Report</h1>
+
+		<section class="section">
+			<h2>Extra information (optional)</h2>
+			<textarea
+				class="text"
+				name="details"
+				id="details"
+				oninput="update()"
+				placeholder="Describe the bug/crash in detail."
+			></textarea>
+			<label for="details" class="words">
+				Describe what you were doing before the bug/crash occurred. If
+				applicable, include the actual behaviour of the app compared to what you
+				expected to happen.
+			</label>
+		</section>
+
+		<section class="section">
+			<h2>Application logs</h2>
+			<p class="no-logs">No application logs available</p>
+			<label class="yes-logs"
+				><input id="include-logs" type="checkbox" onchange="update()" checked />
+				Include logs in report</label
+			>
+			<h3 id="logs-preheader">
+				Tick a checkbox to redact its log message from the report
+			</h3>
+			<section id="logs" class="yes-logs">
+				<header id="logs-header">
+					<h3 id="header-redactions">Redact?</h3>
+					<h3 id="header-messages">Log message</h3>
+				</header>
+
+				<div id="logs-wrapper">
+					<ol id="redactions"></ol>
+					<ol id="messages"></ol>
+				</div>
+			</section>
+		</section>
+
+		<section class="section">
+			<label for="preview"><h2>Report Preview</h2></label>
+			<textarea class="text" name="preview" id="preview" readonly></textarea>
+
+			<div id="consent">
+				<input type="checkbox" id="consent-check" onchange="update()" />
+				<label for="consent-check" class="words">
+					I consent to the above report being sent to janm.dev and being used to
+					improve Pinger. I have verified that it does not contain any
+					information I do not wish to share. I understand the terms and/or
+					privacy policies that apply (they're linked below the report buttons).
+				</label>
+			</div>
+		</section>
+
+		<section id="submit">
+			<div class="submit">
+				<button id="report-github" data-disabled>Report on GitHub</button>
+				<p>Requires a GitHub account.</p>
+				<p>
+					Subject to
+					<a
+						class="link"
+						href="https://docs.github.com/en/site-policy/github-terms"
+						>GitHub's terms</a
+					>
+					and
+					<a
+						class="link"
+						href="https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement"
+						>privacy policy</a
+					>.
+				</p>
+			</div>
+
+			<div class="submit">
+				<button id="report-email" data-disabled>Report via Email</button>
+				<p>Opens your email client.</p>
+				<p>
+					Subject to the
+					<a class="link" href="https://janm.dev/legal/privacy-policy"
+						>janm.dev privacy policy</a
+					>.
+				</p>
+			</div>
+		</section>
+
+		<script>
+			const query = new URLSearchParams(location.search);
+			const logs = query.get("logs");
+			const app = query.get("app");
+
+			const messages = document.getElementById("messages");
+			const redactions = document.getElementById("redactions");
+			const details = document.getElementById("details");
+			const include_logs = document.getElementById("include-logs");
+			const report_github = document.getElementById("report-github");
+			const report_email = document.getElementById("report-email");
+			const preview = document.getElementById("preview");
+			const consent_check = document.getElementById("consent-check");
+			const consent_wrapper = document.getElementById("consent");
+			const no_logs = [...document.getElementsByClassName("no-logs")];
+			const yes_logs = [...document.getElementsByClassName("yes-logs")];
+
+			if (logs) {
+				include_logs.checked = true;
+				no_logs.forEach((n) => n.classList.add("hidden"));
+
+				for (const line of logs.split("\n")) {
+					if (line.trim() !== "") {
+						messages.insertAdjacentHTML(
+							"beforeend",
+							`<li class="message"></li>`
+						);
+						messages.lastChild.innerText = line.trim();
+						redactions.insertAdjacentHTML(
+							"beforeend",
+							`<li class="redaction"><input type="checkbox" onchange="update()" title="Redact line ${messages.childElementCount} from the report" /></li>`
+						);
+					}
+				}
+			} else {
+				include_logs.checked = false;
+				yes_logs.forEach((n) => n.classList.add("hidden"));
+			}
+
+			let report = "";
+
+			report_github.onclick = () => {
+				if (!consent_check.checked) {
+					consent_wrapper.dataset["missing"] = true;
+					return;
+				}
+
+				consent_check.checked = false;
+				report_email.dataset["disabled"] = true;
+				report_github.dataset["disabled"] = true;
+
+				const title = encodeURIComponent(`[BUG] ${app}`);
+				const encoded_report = encodeURIComponent(report);
+				let url = `https://github.com/janm-dev/pinger/issues/new?title=${title}&body=${encoded_report}`;
+
+				if (url.length > 8000) {
+					url = url.substring(0, 8000);
+					url += encodeURIComponent("\n\n***report truncated***\n");
+				}
+
+				window.open(url, "_blank", "noreferrer");
+			};
+
+			report_email.onclick = () => {
+				if (!consent_check.checked) {
+					consent_wrapper.dataset["missing"] = true;
+					return;
+				}
+
+				consent_check.checked = false;
+				report_email.dataset["disabled"] = true;
+				report_github.dataset["disabled"] = true;
+
+				const title = encodeURIComponent(`[BUG] ${app}`);
+				const encoded_report = encodeURIComponent(report);
+				const url = `mailto:dev+pinger@janm.dev?subject=${title}&body=${encoded_report}`;
+
+				window.open(url, "_blank", "noreferrer");
+			};
+
+			window.update = () => {
+				report_github.dataset["disabled"] = true;
+				report_email.dataset["disabled"] = true;
+
+				const line_redacted = Symbol("redacted");
+
+				const unredacted_logs = [...messages.children].map((e, i) => {
+					if (redactions.children[i].firstChild.checked) {
+						e.classList.add("redacted");
+						return line_redacted;
+					} else {
+						e.classList.remove("redacted");
+						return e.textContent.trim().replace(/\s+/g, " ");
+					}
+				});
+
+				let logs = [];
+				let redacted_lines = 0;
+
+				for (const line of unredacted_logs) {
+					if (line === line_redacted) {
+						redacted_lines += 1;
+					} else {
+						if (redacted_lines === 0) {
+							logs.push(line);
+						} else if (redacted_lines === 1) {
+							logs.push("[line redacted]", line);
+							redacted_lines = 0;
+						} else {
+							logs.push(`[${redacted_lines} lines redacted]`, line);
+							redacted_lines = 0;
+						}
+					}
+				}
+
+				if (redacted_lines === 1) {
+					logs.push("[line redacted]");
+				} else if (redacted_lines > 1) {
+					logs.push(`[${redacted_lines} lines redacted]`);
+				}
+
+				report = `# Pinger Bug Report ${new Date().toISOString()}\n\n`;
+				report += app === null || app === "" ? "" : `Version: ${app}\n\n`;
+				report +=
+					details.value === ""
+						? ""
+						: `## Details\n\n${details.value.trim()}\n\n`;
+				report += include_logs.checked
+					? `## Logs\n\n\`\`\`txt\n${logs.join("\n")}\n\`\`\`\n\n`
+					: "";
+
+				preview.value = report.trim();
+
+				if (consent_check.checked) {
+					delete report_github.dataset["disabled"];
+					delete report_email.dataset["disabled"];
+					delete consent_wrapper.dataset["missing"];
+				} else {
+					report_github.dataset["disabled"] = true;
+					report_email.dataset["disabled"] = true;
+				}
+			};
+
+			update();
+		</script>
+	</body>
+</html>
