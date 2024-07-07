@@ -2,6 +2,8 @@
 name = "pinger-cli"
 version = "0.1.0"
 edition = "2021"
+license = "MPL-2.0"
+publish = false
 
 [dependencies]
 colored = "2.1.0"
