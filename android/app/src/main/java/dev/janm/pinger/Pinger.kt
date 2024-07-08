@@ -16,7 +16,7 @@ import java.util.TimerTask
 import java.util.concurrent.ConcurrentHashMap
 
 const val BASE_TIMEOUT: Long = 10000
-const val DECISION_TIMEOUT: Long = 3000//0
+const val DECISION_TIMEOUT: Long = 30000
 
 private enum class State {
 	Connecting,
