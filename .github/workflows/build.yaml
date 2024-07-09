@@ -1,15 +1,60 @@
-name: Build
+name: Build and Deploy
 
 on:
+  workflow_dispatch:
   push:
     branches: ["main"]
 
-env:
-  RUST_BACKTRACE: 1
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "build"
+  cancel-in-progress: false
 
 jobs:
-  deploy:
-    name: Deploy
+  setup:
+    name: Set Up
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.tag.outputs.tag }}
+    steps:
+      - id: tag
+        run: echo "TAG=$(echo '${{ github.event.head_commit.timestamp }}' | sed s/:/-/g | sed s/T/./g | sed s/+/./g)" >> $GITHUB_OUTPUT
+      - uses: actions/checkout@v4
+      - run: |
+          git config user.name "GitHub Actions"
+          git config user.email "github-actions@users.noreply.github.com"
+          git tag ${{ needs.setup.outputs.tag }}
+          git push origin ${{ needs.setup.outputs.tag }}
+
+  licenses:
+    name: Gather and Publish License Info
+    needs: setup
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        dir: ["backend", "cli", "lib"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - run: |
+          cargo install --locked cargo-about
+          cd ${{ matrix.version }}
+          cargo about generate -o ../attribution-${{ matrix.dir }}.html --all-features ../about.hbs
+      - uses: softprops/action-gh-release@v2
+        with:
+          name: ${{ needs.setup.outputs.tag }}
+          tag_name: ${{ needs.setup.outputs.tag }}
+          fail_on_unmatched_files: true
+          files: attribution-${{ matrix.dir }}.html
+
+  backend:
+    name: Backend Docker
     runs-on: ubuntu-latest
     permissions:
       packages: write
@@ -19,3 +64,79 @@ jobs:
       - run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
       - run: docker build -t ghcr.io/janm-dev/pinger:latest -f backend/Dockerfile .
       - run: docker push ghcr.io/janm-dev/pinger:latest
+
+  android:
+    name: Android
+    needs: setup
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: "temurin"
+          java-version: "21"
+      - uses: sparkfabrik/android-build-action@v1.5.0
+        with:
+          project-path: android
+          output-path: pinger.apk
+          gradle-task: assembleRelease
+          release-track: continuous
+          release-status: continuous
+      - uses: softprops/action-gh-release@v2
+        with:
+          name: ${{ needs.setup.outputs.tag }}
+          tag_name: ${{ needs.setup.outputs.tag }}
+          fail_on_unmatched_files: true
+          files: pinger.apk
+
+  linux:
+    name: Build on Linux
+    needs: setup
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        target: ["x86_64-unknown-linux-gnu"]
+        dir: ["backend", "cli"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+      - uses: Swatinem/rust-cache@v2
+      - run: |
+          cd ${{ matrix.dir }}
+          cargo build --release --target ${{ matrix.target }}
+          mv target/${{ matrix.target }}/release/pinger-${{ matrix.dir }} ../${{ matrix.dir }}-${{ matrix.target }}
+      - uses: softprops/action-gh-release@v2
+        with:
+          name: ${{ needs.setup.outputs.tag }}
+          tag_name: ${{ needs.setup.outputs.tag }}
+          fail_on_unmatched_files: true
+          files: ${{ matrix.dir }}-${{ matrix.target }}
+
+  windows:
+    name: Build on Windows
+    needs: setup
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        target: ["x86_64-pc-windows-msvc"]
+        dir: ["backend", "cli"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+      - uses: Swatinem/rust-cache@v2
+      - run: |
+          cd ${{ matrix.dir }}
+          cargo build --release --target ${{ matrix.target }}
+          cp "target/${{ matrix.target }}/release/pinger-${{ matrix.dir }}.exe" "../${{ matrix.dir }}-${{ matrix.target }}.exe"
+      - uses: softprops/action-gh-release@v2
+        with:
+          name: ${{ needs.setup.outputs.tag }}
+          tag_name: ${{ needs.setup.outputs.tag }}
+          fail_on_unmatched_files: true
+          files: ${{ matrix.dir }}-${{ matrix.target }}.exe
