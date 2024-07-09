@@ -20,6 +20,7 @@ allow = [
 	"Unlicense",        # https://spdx.org/licenses/Unlicense
 	"CC0-1.0",          # https://spdx.org/licenses/CC0-1.0
 	"MIT",              # https://spdx.org/licenses/MIT
+	"ISC",              # https://spdx.org/licenses/ISC
 	"BSD-3-Clause",     # https://spdx.org/licenses/BSD-3-Clause
 	"Zlib",             # https://spdx.org/licenses/Zlib
 	"Apache-2.0",       # https://spdx.org/licenses/Apache-2.0
