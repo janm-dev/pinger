@@ -14,13 +14,17 @@ jobs:
   audit:
     name: Regular Audit
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        dir: ["backend", "cli", "lib"]
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
       - uses: EmbarkStudios/cargo-deny-action@v1
         with:
-          manifest-path: backend/Cargo.toml
+          manifest-path: ${{ matrix.dir }}/Cargo.toml
         if: success() || failure()
       - uses: actions/dependency-review-action@v2
         if: (success() || failure()) && (github.event_name == 'pull_request' || github.event_name == 'pull_request_target')
