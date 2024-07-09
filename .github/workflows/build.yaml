@@ -75,7 +75,7 @@ jobs:
           distribution: "temurin"
           java-version: "21"
       - run: |
-          chmod +x gradlew
+          chmod +x ./android/gradlew
           ./android/gradlew assembleRelease
       - uses: r0adkll/sign-android-release@v1
         id: sign_apk
