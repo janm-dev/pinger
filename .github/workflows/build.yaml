@@ -44,8 +44,7 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       - run: |
           cargo install --locked cargo-about
-          cd ${{ matrix.version }}
-          cargo about generate -o ../attribution-${{ matrix.dir }}.html --all-features ../about.hbs
+          cargo about generate -o attribution-${{ matrix.dir }}.html --manifest-path ${{ matrix.version }}/Cargo.toml --all-features about.hbs
       - uses: softprops/action-gh-release@v2
         with:
           name: ${{ needs.setup.outputs.tag }}
