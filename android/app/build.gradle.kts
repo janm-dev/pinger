@@ -1,3 +1,8 @@
+import java.time.Instant
+import java.time.ZoneOffset
+import java.time.ZonedDateTime
+import java.time.format.DateTimeFormatter
+
 plugins {
 	alias(libs.plugins.android.application)
 	alias(libs.plugins.jetbrains.kotlin.android)
@@ -10,11 +15,13 @@ android {
 	buildToolsVersion = "34.0.0"
 
 	defaultConfig {
+		val now = System.currentTimeMillis()
+
 		applicationId = "dev.janm.pinger"
 		minSdk = 21
 		targetSdk = 34
-		versionCode = 1
-		versionName = "0.1"
+		versionCode = (now / 10000).toInt()
+		versionName = DateTimeFormatter.ofPattern("uuuu.MM.dd.A").format(ZonedDateTime.ofInstant(Instant.ofEpochMilli(now), ZoneOffset.UTC))
 		signingConfig = signingConfigs.getByName("debug")
 	}
 
