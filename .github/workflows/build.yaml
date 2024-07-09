@@ -70,6 +70,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: "aarch64-linux-android,arm-linux-androideabi,armv7-linux-androideabi,i686-linux-android,thumbv7neon-linux-androideabi,x86_64-linux-android,riscv64-linux-android"
       - uses: actions/setup-java@v4
         with:
           distribution: "temurin"
