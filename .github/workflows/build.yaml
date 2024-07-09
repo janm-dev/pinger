@@ -73,6 +73,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: "aarch64-linux-android,arm-linux-androideabi,armv7-linux-androideabi,i686-linux-android,thumbv7neon-linux-androideabi,x86_64-linux-android"
+      - uses: Swatinem/rust-cache@v2
       - uses: actions/setup-java@v4
         with:
           distribution: "temurin"
@@ -83,7 +84,7 @@ jobs:
       - uses: r0adkll/sign-android-release@v1
         id: sign_apk
         with:
-          releaseDirectory: android/app/build/outputs/bundle/release
+          releaseDirectory: android/app/build/outputs/apk/release/app-release.apk
           signingKeyBase64: ${{ secrets.ANDROID_SIGNING_KEY_BASE64 }}
           alias: ${{ secrets.ANDROID_SIGNING_KEY_ALIAS }}
           keyStorePassword: ${{ secrets.ANDROID_SIGNING_KEY_STORE_PASSWORD }}
@@ -93,7 +94,7 @@ jobs:
           name: ${{ needs.setup.outputs.tag }}
           tag_name: ${{ needs.setup.outputs.tag }}
           fail_on_unmatched_files: true
-          files: pinger.apk
+          files: ${{ steps.sign_apk.outputs.signedReleaseFile }}
 
   linux:
     name: Build on Linux
