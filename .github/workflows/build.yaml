@@ -94,12 +94,13 @@ jobs:
           keyPassword: ${{ secrets.ANDROID_SIGNING_KEY_PASSWORD }}
         env:
           BUILD_TOOLS_VERSION: ${{ env.BUILD_TOOL_VERSION }}
+      - run: mv ${{ steps.sign_apk.outputs.signedReleaseFile }} pinger.apk
       - uses: softprops/action-gh-release@v2
         with:
           name: ${{ needs.setup.outputs.tag }}
           tag_name: ${{ needs.setup.outputs.tag }}
           fail_on_unmatched_files: true
-          files: ${{ steps.sign_apk.outputs.signedReleaseFile }}
+          files: pinger.apk
 
   linux:
     name: Build on Linux
