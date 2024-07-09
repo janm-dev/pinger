@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<link rel="shortcut icon" href="favicon.ico" type="image/x-icon" />
+		<link
+			rel="shortcut icon"
+			href="icon.svg"
+			sizes="any"
+			type="image/svg+xml"
+		/>
+		<link rel="manifest" href="/pinger.webmanifest" crossorigin="anonymous" />
+		<title>Pinger</title>
+		<style>
+			:root {
+				--primary: #40f7b4;
+				--secondary: #051521;
+				--attention: #ff7937;
+				--white: #ffffff;
+				--black: #000000;
+				--gray: #969aa2;
+				--width: 80ch;
+				--fonts: "Helvetica Neue", "Helvetica", "Roboto", "Fira Sans",
+					"Droid Sans", sans-serif;
+			}
+
+			html {
+				background-color: var(--secondary);
+				color: var(--white);
+				padding: 0;
+				margin: 0;
+				width: 100%;
+				min-width: 100px;
+				font-family: var(--fonts);
+			}
+
+			body {
+				width: var(--width);
+				margin: 0 auto;
+				font-size: 1rem;
+				padding: 1rem;
+			}
+
+			a {
+				color: var(--primary);
+				text-decoration-color: var(--primary);
+				text-decoration: underline;
+			}
+
+			a:visited {
+				color: var(--primary);
+				text-decoration-color: var(--secondary);
+			}
+
+			*:focus {
+				outline: var(--primary) solid 0.25rem;
+			}
+
+			@media screen and (max-width: 800px) {
+				:root {
+					--width: 60ch;
+				}
+			}
+
+			@media screen and (max-width: 600px) {
+				:root {
+					--width: 80vw;
+					--width: 80dvw;
+				}
+			}
+
+			@media screen and (max-width: 450px) {
+				:root {
+					font-size: 0.8rem;
+				}
+			}
+
+			@media screen and (max-width: 180px) {
+				:root {
+					font-size: 0.7rem;
+				}
+			}
+
+			@media screen and (max-width: 150px) {
+				:root {
+					font-size: 0.65rem;
+				}
+			}
+
+			@media screen and (max-width: 100px) {
+				:root {
+					--width: 80px;
+				}
+			}
+		</style>
+	</head>
+	<body>
+		<h1>Pinger is coming soon</h1>
+
+		<p>Pinger is not yet available on the web</p>
+		<p>
+			Maybe
+			<a href="https://github.com/janm-dev/pinger">try the Android app</a>?
+		</p>
+	</body>
+</html>

@@ -8,7 +8,8 @@ use std::{
 use minify_html::Cfg;
 
 fn main() -> Result<(), Box<dyn Error>> {
-	minify("bug", "./bug.html");
+	minify("bug", "assets/bug.html");
+	minify("index", "assets/index.html");
 
 	Ok(())
 }
