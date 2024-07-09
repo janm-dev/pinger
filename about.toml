@@ -26,7 +26,6 @@ targets = [
 	"i686-linux-android",
 	"thumbv7neon-linux-androideabi",
 	"x86_64-linux-android",
-	"riscv64-linux-android",
 ]
 
 no-clearly-defined = true
