@@ -79,6 +79,9 @@ jobs:
           distribution: "temurin"
           java-version: "21"
       - run: |
+          BUILD_TOOL_VERSION=$(ls /usr/local/lib/android/sdk/build-tools/ | tail -n 1)
+          echo "BUILD_TOOL_VERSION=$BUILD_TOOL_VERSION" >> $GITHUB_ENV
+      - run: |
           chmod +x ./android/gradlew
           cd android && ./gradlew assembleRelease
       - uses: r0adkll/sign-android-release@v1
@@ -89,6 +92,8 @@ jobs:
           alias: ${{ secrets.ANDROID_SIGNING_KEY_ALIAS }}
           keyStorePassword: ${{ secrets.ANDROID_SIGNING_KEY_STORE_PASSWORD }}
           keyPassword: ${{ secrets.ANDROID_SIGNING_KEY_PASSWORD }}
+        env:
+          BUILD_TOOLS_VERSION: ${{ env.BUILD_TOOL_VERSION }}
       - uses: softprops/action-gh-release@v2
         with:
           name: ${{ needs.setup.outputs.tag }}
