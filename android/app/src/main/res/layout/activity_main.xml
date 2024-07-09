@@ -25,109 +25,106 @@
 		</org.osmdroid.views.MapView>
 
 		<androidx.constraintlayout.widget.ConstraintLayout
-			android:id="@+id/slideUpLayout"
-			style="@style/bottom_width"
-			android:layout_height="match_parent"
-			android:layout_gravity="center_horizontal">
-
-			<LinearLayout
-				android:id="@+id/slideUpLayoutInner"
-				android:layout_width="match_parent"
-				android:layout_height="168dp"
-				android:background="@drawable/slideup_background"
-				android:elevation="8dp"
-				android:orientation="horizontal"
-				app:layout_constraintBottom_toBottomOf="parent"
-				app:layout_constraintEnd_toEndOf="parent"
-				app:layout_constraintStart_toStartOf="parent"
-				app:layout_constraintTop_toTopOf="parent"
-				app:layout_constraintVertical_bias="1.0">
-
-				<TextView
-					android:id="@+id/slideUpText"
-					android:layout_width="0dp"
-					android:layout_height="52dp"
-					android:layout_margin="8dp"
-					android:layout_weight="1"
-					android:drawableStart="@drawable/ping_incoming"
-					android:drawablePadding="4dp"
-					android:gravity="center_vertical"
-					android:text="@string/ping_error"
-					android:textColor="@color/black"
-					android:textSize="16sp"
-					app:drawableTint="@color/black" />
-			</LinearLayout>
-		</androidx.constraintlayout.widget.ConstraintLayout>
-
-		<androidx.constraintlayout.widget.ConstraintLayout
-			android:id="@+id/decisionLayout"
-			style="@style/bottom_width"
-			android:layout_height="match_parent"
-			android:layout_gravity="center_horizontal">
-
-			<LinearLayout
-				android:id="@+id/decisionLayoutInner"
-				android:layout_width="match_parent"
-				android:layout_height="168dp"
-				android:background="@drawable/slideup_background"
-				android:backgroundTint="@color/info"
-				android:elevation="8dp"
-				android:gravity="end"
-				android:orientation="horizontal"
-				app:layout_constraintBottom_toBottomOf="parent"
-				app:layout_constraintEnd_toEndOf="parent"
-				app:layout_constraintStart_toStartOf="parent"
-				app:layout_constraintTop_toTopOf="parent"
-				app:layout_constraintVertical_bias="1.0">
-
-				<TextView
-					android:id="@+id/decisionText"
-					android:layout_width="0dp"
-					android:layout_height="52dp"
-					android:layout_margin="10dp"
-					android:layout_weight="1"
-					android:gravity="center"
-					android:text="@string/ping_request_received"
-					android:textAlignment="center"
-					android:textColor="@color/white"
-					android:textSize="20sp" />
-
-				<ImageButton
-					android:id="@+id/acceptButton"
-					android:layout_width="52dp"
-					android:layout_height="52dp"
-					android:layout_margin="10dp"
-					android:background="@drawable/circle"
-					android:backgroundTint="@color/primary"
-					android:contentDescription="@string/accept_ping"
-					android:elevation="4dp"
-					app:srcCompat="@drawable/accept" />
-
-				<ImageButton
-					android:id="@+id/rejectButton"
-					android:layout_width="52dp"
-					android:layout_height="52dp"
-					android:layout_margin="10dp"
-					android:background="@drawable/circle"
-					android:backgroundTint="@color/bad"
-					android:contentDescription="@string/reject_ping"
-					android:elevation="4dp"
-					app:srcCompat="@drawable/reject" />
-			</LinearLayout>
-		</androidx.constraintlayout.widget.ConstraintLayout>
-
-		<androidx.constraintlayout.widget.ConstraintLayout
 			android:id="@+id/bottomLayout"
 			style="@style/bottom_width"
 			android:layout_height="match_parent"
 			android:layout_gravity="center_horizontal"
 			android:elevation="8dp">
 
+			<androidx.constraintlayout.widget.ConstraintLayout
+				android:id="@+id/decisionLayout"
+				style="@style/bottom_width"
+				android:layout_height="fill_parent"
+				android:layout_gravity="center_horizontal"
+				app:layout_constraintBottom_toBottomOf="parent"
+				app:layout_constraintEnd_toEndOf="parent"
+				app:layout_constraintStart_toStartOf="parent">
+
+				<LinearLayout
+					android:id="@+id/slideUpLayoutInner"
+					android:layout_width="match_parent"
+					android:layout_height="88dp"
+					android:layout_marginBottom="-24dp"
+					android:background="@drawable/slideup_background"
+					android:backgroundTint="@color/info"
+					android:elevation="8dp"
+					android:orientation="horizontal"
+					app:layout_constraintBottom_toTopOf="@+id/decisionLayoutInner"
+					app:layout_constraintEnd_toEndOf="parent"
+					app:layout_constraintStart_toStartOf="parent">
+
+					<TextView
+						android:id="@+id/slideUpText"
+						android:layout_width="0dp"
+						android:layout_height="52dp"
+						android:layout_margin="8dp"
+						android:layout_weight="1"
+						android:drawablePadding="4dp"
+						android:gravity="center_vertical"
+						android:text="@string/ping_error"
+						android:textColor="@color/white"
+						android:textSize="16sp"
+						app:drawableStartCompat="@drawable/ping_incoming"
+						app:drawableTint="@color/white" />
+				</LinearLayout>
+
+				<LinearLayout
+					android:id="@+id/decisionLayoutInner"
+					android:layout_width="match_parent"
+					android:layout_height="96dp"
+					android:layout_marginBottom="80dp"
+					android:background="@drawable/slideup_background"
+					android:backgroundTint="@color/decision"
+					android:elevation="12dp"
+					android:gravity="end"
+					android:orientation="horizontal"
+					app:layout_constraintBottom_toBottomOf="parent"
+					app:layout_constraintEnd_toEndOf="parent"
+					app:layout_constraintStart_toStartOf="parent">
+
+					<TextView
+						android:id="@+id/decisionText"
+						android:layout_width="0dp"
+						android:layout_height="52dp"
+						android:layout_margin="12dp"
+						android:layout_weight="1"
+						android:gravity="center"
+						android:text="@string/ping_request_received"
+						android:textAlignment="center"
+						android:textColor="@color/white"
+						android:textSize="20sp" />
+
+					<ImageButton
+						android:id="@+id/acceptButton"
+						android:layout_width="52dp"
+						android:layout_height="52dp"
+						android:layout_margin="12dp"
+						android:background="@drawable/circle"
+						android:backgroundTint="@color/primary"
+						android:contentDescription="@string/accept_ping"
+						android:elevation="4dp"
+						app:srcCompat="@drawable/accept" />
+
+					<ImageButton
+						android:id="@+id/rejectButton"
+						android:layout_width="52dp"
+						android:layout_height="52dp"
+						android:layout_margin="12dp"
+						android:background="@drawable/circle"
+						android:backgroundTint="@color/bad"
+						android:contentDescription="@string/reject_ping"
+						android:elevation="4dp"
+						app:srcCompat="@drawable/reject" />
+				</LinearLayout>
+
+			</androidx.constraintlayout.widget.ConstraintLayout>
+
 			<LinearLayout
 				android:id="@+id/bottomLayoutWrapper"
 				android:layout_width="match_parent"
-				android:layout_height="wrap_content"
+				android:layout_height="104dp"
 				android:background="@drawable/bottom_background"
+				android:elevation="16dp"
 				android:orientation="vertical"
 				app:layout_constraintBottom_toBottomOf="parent"
 				app:layout_constraintEnd_toEndOf="parent"
@@ -178,6 +175,7 @@
 					android:textAlignment="center"
 					android:textColor="@color/white"
 					android:textSize="12sp" />
+
 			</LinearLayout>
 
 		</androidx.constraintlayout.widget.ConstraintLayout>
@@ -234,7 +232,6 @@
 					android:id="@+id/showLocationButton"
 					android:layout_width="60sp"
 					android:layout_height="60sp"
-					android:layout_weight="1"
 					android:background="@drawable/floating_background"
 					android:contentDescription="@string/go_to_own_location"
 					android:padding="8sp"

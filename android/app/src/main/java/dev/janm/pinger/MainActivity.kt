@@ -1,7 +1,6 @@
 package dev.janm.pinger
 
 import android.Manifest
-import android.content.Intent
 import android.content.pm.PackageManager
 import android.location.Location
 import android.location.LocationManager
@@ -21,6 +20,8 @@ import androidx.annotation.DrawableRes
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.content.res.AppCompatResources
 import androidx.browser.customtabs.CustomTabsIntent
+import androidx.constraintlayout.widget.ConstraintLayout
+import androidx.core.view.marginBottom
 import androidx.dynamicanimation.animation.DynamicAnimation
 import androidx.dynamicanimation.animation.SpringAnimation
 import org.osmdroid.OsmdroidBuildInfo
@@ -123,21 +124,22 @@ class MainActivity: AppCompatActivity() {
 
 		val idIndicator = findViewById<TextView>(R.id.myPingId)
 		val slideUpText = findViewById<TextView>(R.id.slideUpText)
-		val slideUpLayout = findViewById<LinearLayout>(R.id.slideUpLayoutInner)
+		val slideUpLayoutInner = findViewById<LinearLayout>(R.id.slideUpLayoutInner)
 		val decisionText = findViewById<TextView>(R.id.decisionText)
-		val decisionLayout = findViewById<LinearLayout>(R.id.decisionLayoutInner)
+		val decisionLayout = findViewById<ConstraintLayout>(R.id.decisionLayout)
+		val decisionLayoutInner = findViewById<LinearLayout>(R.id.decisionLayoutInner)
+		val getDecisionLayoutInnerOffset = { decisionLayoutInner.height.toFloat() + slideUpLayoutInner.marginBottom.toFloat() }
+		val getSlideUpLayoutInnerOffset = { slideUpLayoutInner.height.toFloat() }
 
-		// HACK: set correct width for the ID indicator (this only seems to work in onCreate)
 		idIndicator.text = getString(R.string.user_s_ping_id).replace("{id}", "000")
-		// TODO: add loading indicator
 		idIndicator.post { idIndicator.text = getString(R.string.user_s_ping_id).replace("{id}", "...") }
 
-		decisionLayout.post { decisionLayout.translationY = decisionLayout.height.toFloat() }
+		decisionLayout.post { decisionLayout.translationY = getDecisionLayoutInnerOffset() }
 		var decidingOn: Pinger.Id? = null
 		fun showDecision(id: Pinger.Id) {
 			decisionText.post {
 				decidingOn = id
-				decisionText.text = getString(R.string.ping_request_received).replace("{id}", id.toString())
+				decisionText.text = getString(R.string.accept_ping_questionmark).replace("{id}", id.toString())
 				SpringAnimation(decisionLayout, DynamicAnimation.TRANSLATION_Y, 0.0f).start()
 			}
 		}
@@ -148,13 +150,13 @@ class MainActivity: AppCompatActivity() {
 					SpringAnimation(
 						decisionLayout,
 						DynamicAnimation.TRANSLATION_Y,
-						decisionLayout.height.toFloat()
+						getDecisionLayoutInnerOffset()
 					).start()
 				}
 			}
 		}
 
-		slideUpLayout.post { slideUpLayout.translationY = slideUpLayout.height.toFloat() }
+		slideUpLayoutInner.post { slideUpLayoutInner.translationY = getSlideUpLayoutInnerOffset() }
 		var slideUpEpoch = 0
 		fun showSlideUp(text: String, @DrawableRes icon: Int = 0, showFor: Long = 5000) {
 			var currentEpoch: Int? = null
@@ -163,15 +165,15 @@ class MainActivity: AppCompatActivity() {
 				currentEpoch = slideUpEpoch
 				slideUpText.setCompoundDrawablesRelativeWithIntrinsicBounds(icon, 0, 0, 0)
 				slideUpText.text = text
-				SpringAnimation(slideUpLayout, DynamicAnimation.TRANSLATION_Y, 0.0f).start()
+				SpringAnimation(slideUpLayoutInner, DynamicAnimation.TRANSLATION_Y, 0.0f).start()
 			}
 
-			slideUpLayout.postDelayed({
+			slideUpLayoutInner.postDelayed({
 				if (currentEpoch == slideUpEpoch) {
 					SpringAnimation(
-						slideUpLayout,
+						slideUpLayoutInner,
 						DynamicAnimation.TRANSLATION_Y,
-						slideUpLayout.height.toFloat()
+						getSlideUpLayoutInnerOffset()
 					).start()
 				}
 			}, showFor)
@@ -292,13 +294,18 @@ class MainActivity: AppCompatActivity() {
 
 		pingButton.isEnabled = false
 
+		var firstConnection = true
 		connection = Pinger.Builder(URL(getString(R.string.api_url)))
 			.userAgent(userAgent)
+			.onReconnecting { idIndicator.post { idIndicator.text = getString(R.string.user_s_ping_id).replace("{id}", "...") } }
 			.onConnected { logger.info("connected as id $it") }
-			.onConnected { idIndicator.post { idIndicator.text = getString(R.string.user_s_ping_id).replace(Regex.fromLiteral("{id}"), it.getValue().toString()) } }
+			.onConnected { idIndicator.post { idIndicator.text = getString(R.string.user_s_ping_id).replace(Regex.fromLiteral("{id}"), it.toString()) } }
 			.onConnected { pingButton.post { pingButton.isEnabled = true } }
+			.onConnected { if (!firstConnection) { showSlideUp(getString(R.string.reconnected), R.drawable.ping_incoming) } else { firstConnection = false } }
 			.onPing { (id, info) -> logger.info("ping received from $id: $info") }
 			.onPing { (id, info) -> runOnUiThread {
+				showSlideUp(getString(R.string.ping_received).replace("{id}", decidingOn.toString()), R.drawable.ping_accepted)
+
 				val marker = Marker(map)
 				val elapsed = System.currentTimeMillis() / 1000 - info.ts
 				marker.position = GeoPoint(info.lat, info.lon, info.alt.toDouble())
@@ -360,7 +367,7 @@ class MainActivity: AppCompatActivity() {
 										this.cancel()
 									}
 								}
-							}, 60000 - System.currentTimeMillis() % 60000, 60000)
+							}, 60000 - System.currentTimeMillis() % 1000, 60000)
 						}
 					}
 				}, 1000 - System.currentTimeMillis() % 1000, 1000)
@@ -379,14 +386,17 @@ class MainActivity: AppCompatActivity() {
 			.onRejected { logger.warning("ping rejected by $it") }
 			.onRejected { pingButton.post { pingButton.isEnabled = true } }
 			.onRejected { showSlideUp(getString(R.string.ping_request_rejected).replace("{id}", it.toString()), R.drawable.ping_rejected) }
+			.onAccepted { showSlideUp(getString(R.string.ping_request_accepted).replace("{id}", it.toString()), R.drawable.ping_accepted) }
 			.onAcknowledged { pingButton.post { pingButton.isEnabled = true } }
-			.onAcknowledged { showSlideUp(getString(R.string.ping_request_accepted).replace("{id}", it.toString()), R.drawable.ping_accepted) }
+			.onAcknowledged { showSlideUp(getString(R.string.ping_acknowledged).replace("{id}", it.toString()), R.drawable.ping_accepted) }
 			.onDecisionTimeout { logger.warning("decision timeout: $it") }
 			.onDecisionTimeout { hideDecision(it) }
 			.onResponseTimeout { logger.warning("response timeout: $it") }
 			.onResponseTimeout { pingButton.post { pingButton.isEnabled = true } }
+			.onResponseTimeout { showSlideUp(getString(R.string.response_timeout).replace("{id}", it.toString()), R.drawable.ping_rejected) }
 			.onAcknowledgeTimeout { logger.warning("acknowledge timeout: $it") }
 			.onAcknowledgeTimeout { pingButton.post { pingButton.isEnabled = true } }
+			.onAcknowledgeTimeout { showSlideUp(getString(R.string.acknowledge_timeout).replace("{id}", it.toString()), R.drawable.ping_rejected) }
 			.build()
 
 		val acceptButton = findViewById<ImageButton>(R.id.acceptButton)
@@ -395,6 +405,7 @@ class MainActivity: AppCompatActivity() {
 		acceptButton.setOnClickListener {
 			if (decidingOn != null) {
 				connection.accept(decidingOn!!)
+				showSlideUp(getString(R.string.ping_accepted).replace("{id}", decidingOn.toString()), R.drawable.ping_accepted)
 				hideDecision(decidingOn!!)
 			}
 		}
@@ -402,6 +413,7 @@ class MainActivity: AppCompatActivity() {
 		rejectButton.setOnClickListener {
 			if (decidingOn != null) {
 				connection.reject(decidingOn!!)
+				showSlideUp(getString(R.string.ping_rejected).replace("{id}", decidingOn.toString()), R.drawable.ping_rejected)
 				hideDecision(decidingOn!!)
 			}
 		}

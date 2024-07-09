@@ -58,7 +58,9 @@ public class Pinger private constructor(
 	private val onError: Iterable<Consumer<String>>,
 	private val onIdNotFound: Iterable<Consumer<Id>>,
 	private val onConnected: Iterable<Consumer<Id>>,
+	private val onReconnecting: Iterable<Runnable>,
 	private val onRejected: Iterable<Consumer<Id>>,
+	private val onAccepted: Iterable<Consumer<Id>>,
 	private val onResponseTimeout: Iterable<Consumer<Id>>,
 	private val onAcknowledged: Iterable<Consumer<Id>>,
 	private val onAcknowledgeTimeout: Iterable<Consumer<Id>>,
@@ -103,12 +105,14 @@ public class Pinger private constructor(
 		}
 
 		reconnecting = true
+		timeoutTimer.cancel()
 
 		if (connection.close(1001, "reconnecting")) {
 			logger.warning("reconnecting an open connection")
 		}
 
-		timeoutTimer.cancel()
+		onReconnecting.forEach { it.run() }
+
 		Thread.sleep(1000)
 
 		connection.cancel()
@@ -213,7 +217,7 @@ public class Pinger private constructor(
 					reconnect()
 				}
 				is MessageFromServer.NoSuchId -> if (message.id == sendingTo) {
-					state.assertIs(State.AwaitingAccept)
+					state.assertIs(State.AwaitingAccept, State.AwaitingAck)
 					state = State.Ready
 					keyExchange = null
 					infoToSend = null
@@ -222,7 +226,7 @@ public class Pinger private constructor(
 				} else {
 					logger.warning("incoming ping from ${message.id} can't be replied to")
 					exchanges.remove(message.id)
-					onError.forEach { it.accept("Unable to reply to ${message.id} - id not found") }
+					onIdNotFound.forEach { it.accept(message.id) }
 				}
 				is MessageFromServer.Ping -> if (exchanges.containsKey(message.from)) {
 					val exchange = exchanges[message.from]!!
@@ -241,7 +245,7 @@ public class Pinger private constructor(
 				} else {
 					logger.warning("got ping from ${message.from}, but there is no ongoing exchange with that id")
 				}
-				is MessageFromServer.PingAck -> if (sendingTo == message.from) {
+				is MessageFromServer.PingAck -> if (sendingTo == message.from && state == State.AwaitingAck) {
 					state.assertIs(State.AwaitingAck)
 					state = State.Ready
 					ackTimeout?.cancel()
@@ -249,6 +253,8 @@ public class Pinger private constructor(
 					sendingTo = null
 					logger.info("ping acknowledged by ${message.from}")
 					onAcknowledged.forEach { it.accept(message.from) }
+				} else if (sendingTo == message.from) {
+					logger.warning("received unexpected ping acknowledgement (from ${message.from}, connection state is $state)")
 				} else {
 					logger.warning("received unexpected ping acknowledgement (from ${message.from}, expected ack from $sendingTo)")
 				}
@@ -273,6 +279,7 @@ public class Pinger private constructor(
 					}
 
 					logger.info("ping accepted by ${message.from}")
+					onAccepted.forEach { it.accept(message.from) }
 					connection.send(MessageToServer.Ping(message.from, infoToSend!!, keyExchange!!.diffieHellman(message.key)).toString())
 					infoToSend = null
 					timeoutTimer.schedule(ackTimeout, BASE_TIMEOUT)
@@ -325,8 +332,10 @@ public class Pinger private constructor(
 				}
 			}
 		} catch (e: IllegalStateException) {
+			Thread { throw RuntimeException("connection state error", e) }.start()
 			throw RuntimeException("connection state error", e)
 		} catch (e: Exception) {
+			Thread { throw RuntimeException("exception in pinger connection", e) }.start()
 			throw RuntimeException("exception in pinger connection", e)
 		}
 	}
@@ -338,7 +347,9 @@ public class Pinger private constructor(
 		private var onError: ArrayList<Consumer<String>> = ArrayList()
 		private var onIdNotFound: ArrayList<Consumer<Id>> = ArrayList()
 		private var onConnected: ArrayList<Consumer<Id>> = ArrayList()
+		private var onReconnecting: ArrayList<Runnable> = ArrayList()
 		private var onRejected: ArrayList<Consumer<Id>> = ArrayList()
+		private var onAccepted: ArrayList<Consumer<Id>> = ArrayList()
 		private var onResponseTimeout: ArrayList<Consumer<Id>> = ArrayList()
 		private var onAcknowledged: ArrayList<Consumer<Id>> = ArrayList()
 		private var onAcknowledgeTimeout: ArrayList<Consumer<Id>> = ArrayList()
@@ -395,11 +406,29 @@ public class Pinger private constructor(
 			return this
 		}
 
+		public fun onReconnecting(callback: Runnable): Builder {
+			onReconnecting.add { try {
+				callback.run()
+			} catch (e: Exception) {
+				throw RuntimeException("Exception in onReconnecting handler", e)
+			} }
+			return this
+		}
+
 		public fun onRejected(callback: Consumer<Id>): Builder {
 			onRejected.add { try {
 				callback.accept(it)
 			} catch (e: Exception) {
 				throw RuntimeException("Exception in onRejected handler", e)
+			} }
+			return this
+		}
+
+		public fun onAccepted(callback: Consumer<Id>): Builder {
+			onAccepted.add { try {
+				callback.accept(it)
+			} catch (e: Exception) {
+				throw RuntimeException("Exception in onAccepted handler", e)
 			} }
 			return this
 		}
@@ -458,7 +487,9 @@ public class Pinger private constructor(
 				onError,
 				onIdNotFound,
 				onConnected,
+				onReconnecting,
 				onRejected,
+				onAccepted,
 				onResponseTimeout,
 				onAcknowledged,
 				onAcknowledgeTimeout,

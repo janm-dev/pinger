@@ -14,7 +14,7 @@
 	<string name="api_url">https://pinger.janm.dev/api</string>
 	<string name="tile_url">https://tile.openstreetmap.org/{z}/{x}/{y}.png</string>
 	<string name="id_not_found">Id {id} not found</string>
-	<string name="ping_error">Error sending ping:\n{msg}</string>
+	<string name="ping_error">Connection error:\n{msg}</string>
 	<string name="go_to_own_location">Go to you location</string>
 	<string name="permission_explanation_ping">Pinger needs permission to access your location to send it to the people you ping.</string>
 	<string name="permission_explanation_map">Pinger needs permission to access your location to show it on the map.</string>
@@ -29,4 +29,12 @@
 		<item quantity="other">Ping from {id}, {m} minutes ago.</item>
 	</plurals>
 	<string name="ping_from_over_1h">Ping from {id}, over an hour ago.</string>
+	<string name="accept_ping_questionmark">Accept ping from {id}?</string>
+	<string name="ping_accepted">Accepted a ping from {id}</string>
+	<string name="ping_rejected">Ping from {id} rejected</string>
+	<string name="ping_received">Ping from {id} received</string>
+	<string name="response_timeout">{id} did not accept your Ping in time</string>
+	<string name="ping_acknowledged">{id} received your Ping</string>
+	<string name="acknowledge_timeout">{id} may not have received your Ping\nTry again in a few seconds</string>
+	<string name="reconnected">Reconnected to server</string>
 </resources>
