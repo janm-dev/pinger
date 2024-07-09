@@ -74,13 +74,17 @@ jobs:
         with:
           distribution: "temurin"
           java-version: "21"
-      - uses: sparkfabrik/android-build-action@v1.5.0
+      - run: |
+          chmod +x gradlew
+          ./android/gradlew assembleRelease
+      - uses: r0adkll/sign-android-release@v1
+        id: sign_apk
         with:
-          project-path: android
-          output-path: pinger.apk
-          gradle-task: assembleRelease
-          release-track: continuous
-          release-status: continuous
+          releaseDirectory: android/app/build/outputs/bundle/release
+          signingKeyBase64: ${{ secrets.ANDROID_SIGNING_KEY_BASE64 }}
+          alias: ${{ secrets.ANDROID_SIGNING_KEY_ALIAS }}
+          keyStorePassword: ${{ secrets.ANDROID_SIGNING_KEY_STORE_PASSWORD }}
+          keyPassword: ${{ secrets.ANDROID_SIGNING_KEY_PASSWORD }}
       - uses: softprops/action-gh-release@v2
         with:
           name: ${{ needs.setup.outputs.tag }}

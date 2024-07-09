@@ -1,3 +1,7 @@
 **/target
 .vscode/
 .env
+
+android/app/release/**
+android/app/classmapping.txt
+android/key.jks
