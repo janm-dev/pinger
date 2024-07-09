@@ -10,12 +10,7 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(Corrosion)
 
-corrosion_import_crate(MANIFEST_PATH ../../../../../lib/Cargo.toml)
+corrosion_import_crate(MANIFEST_PATH ../../../../../lib/Cargo.toml NO_DEFAULT_FEATURES NO_STD CRATE_TYPES cdylib FEATURES java-ffi)
 
 add_library(pinger-lib SHARED dummy.cpp)
 target_link_libraries(pinger-lib PUBLIC pinger)
-
-corrosion_set_features(
-	pinger
-	FEATURES java-ffi
-)

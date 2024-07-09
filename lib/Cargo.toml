@@ -10,6 +10,7 @@ name = "pinger"
 crate-type = ["cdylib", "lib"]
 
 [features]
+default = ["std"]
 std = []
 java-ffi = ["std", "dep:jni"]
 
