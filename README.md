@@ -7,6 +7,14 @@ Ping people to your location.
 <a href="https://pinger.janm.dev"><img src="https://raw.githubusercontent.com/janm-dev/pinger/main/screenshot-web.webp" width="78%" alt="A screenshot of the Pinger website with a dark blue background and white text, showing a big heading saying 'Pinger is coming soon' with slightly smaller, but still very big text below that saying 'Pinger is not yet available on the web' and 'Maybe try the Android app?'. Most of the second sentence is colored in light green to indicate that it is a link." /></a>
 </div>
 
+## Software
+
+- An Android app client is implemented in `./android/` (`pinger.apk` in releases)
+- A basic command-line client is implemented in `./cli/` (`cli-*` in releases)
+- A web-based client is planned (will be available on <https://pinger.janm.dev>)
+- The server is implemented in `./backend/` (`backend-*` in releases)
+- Cryptographic operations are implemented in `./lib/` and used by the Android and command-line clients as well as the server
+
 ## Protocol
 
 The Pinger protocol works using JSON over WebSockets.
@@ -52,6 +60,16 @@ If multiple simultaneous (i.e. non-acknowledged) Ping requests are received from
 Clients must be able to receive multiple simultaneous (i.e. non-acknowledged) Ping requests from multiple different IDs.
 These should *all* be handled, not ignored.
 
+## Timeouts
+
+Clients should implement timeouts on certain operations.
+If a client implements timeouts, they must have the following durations:
+
+- A 30 second timeout on letting the user decide on whether to accept or reject a Ping request
+- A 40 second timeout on waiting for another user to accept or reject a Ping request
+- A 10 second timeout on waiting for a Ping after accepting a Ping request
+- A 10 second timeout on waiting for a Ping acknowledgement after sending a Ping
+
 ### All message types
 
 Messages sent from the server to a client:
@@ -75,6 +93,10 @@ Ping messages with cryptographic errors should also be ignored, though a warning
 Do not attempt to recover from cryptogaphic errors (e.g. message authentication failure), even if the data looks "decryptable".
 
 ### Security
+
+> The cryptography discussed below was **not** implemented or reviewed by security professionals (though it is implemented on top of [audited](https://docs.rs/chacha20poly1305), [widely used](https://docs.rs/x25519-dalek) libraries).
+> It's entirely possible that it does not provide any protection at all, in which case the TLS of the secure WebSocket connection between the clients and the server is the only protection left.
+> Below are the optimistically-stated goals of doing this extra cryptography.
 
 In addition to the usual TLS encryption between each client and the server, Ping info (which contains a client's location) is also encrypted end-to-end while being sent between clients.
 
