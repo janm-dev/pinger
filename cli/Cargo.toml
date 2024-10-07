@@ -13,7 +13,7 @@ derive_more = { version = "0.99.18", default-features = false, features = [
 ] }
 futures-util = "0.3.31"
 pinger = { version = "*", path = "../lib" }
-rustls = { version = "0.23.13", default-features = false, features = [
+rustls = { version = "0.23.14", default-features = false, features = [
 	"ring",
 	"log",
 	"logging",
