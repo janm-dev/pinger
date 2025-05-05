@@ -32,4 +32,4 @@ tracing-subscriber = { version = "0.3.19", features = [
 regex = "1.11.1"
 
 [build-dependencies]
-minify-html = "0.15.0"
+minify-html = "0.16.4"
