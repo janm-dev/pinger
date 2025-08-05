@@ -28,13 +28,17 @@ tokio-tungstenite = { version = "0.27.0", features = [
 ] }
 inquire = "0.7.5"
 
-[lints]
-clippy.pedantic = { level = "warn", priority = -1 }
-clippy.cargo = { level = "warn", priority = -1 }
-clippy.nursery = { level = "warn", priority = -1 }
-rust.unsafe_code = "forbid"
-rust.missing_docs = "warn"
-rustdoc.missing_crate_level_docs = "warn"
-clippy.multiple_crate_versions = "allow"
-clippy.tabs_in_doc_comments = "allow"
-clippy.module_name_repetitions = "allow"
+[lints.rust]
+unsafe_code = "forbid"
+missing_docs = "warn"
+
+[lints.clippy]
+pedantic = { level = "warn", priority = -1 }
+cargo = { level = "warn", priority = -1 }
+nursery = { level = "warn", priority = -1 }
+multiple_crate_versions = "allow"
+tabs_in_doc_comments = "allow"
+module_name_repetitions = "allow"
+
+[lints.rustdoc]
+missing_crate_level_docs = "warn"
