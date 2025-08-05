@@ -22,6 +22,7 @@ ignore = []
 [licenses]
 version = 2
 confidence-threshold = 0.9
+unused-allowed-license = "allow"
 allow = [
 	"Unlicense",        # https://spdx.org/licenses/Unlicense
 	"CC0-1.0",          # https://spdx.org/licenses/CC0-1.0
@@ -34,11 +35,7 @@ allow = [
 	"Unicode-3.0",      # https://spdx.org/licenses/Unicode-3.0
 	"MPL-2.0",          # https://spdx.org/licenses/MPL-2.0
 ]
-exceptions = [
-	{ name = "ring", version = "*", allow = [
-		"OpenSSL", # https://spdx.org/licenses/OpenSSL
-	] },
-]
+exceptions = []
 
 [[licenses.clarify]]
 name = "ring"
