@@ -1,19 +1,18 @@
+//! Minify the HTML pages
+
 use std::{
-	env,
-	error::Error,
-	fs,
+	env, fs,
 	path::{Path, PathBuf},
 };
 
 use minify_html::Cfg;
 
-fn main() -> Result<(), Box<dyn Error>> {
+fn main() {
 	minify("bug", "assets/bug.html");
 	minify("index", "assets/index.html");
-
-	Ok(())
 }
 
+/// Minify the HTML file named `name` at `path`
 fn minify(name: &str, path: impl AsRef<Path>) {
 	let path = path.as_ref();
 
@@ -25,14 +24,15 @@ fn minify(name: &str, path: impl AsRef<Path>) {
 	let html = fs::read_to_string(path).unwrap();
 
 	let config = Cfg {
-		do_not_minify_doctype: true,
-		ensure_spec_compliant_unquoted_attribute_values: true,
+		minify_doctype: false,
+		allow_noncompliant_unquoted_attribute_values: false,
 		keep_closing_tags: false,
 		keep_html_and_head_opening_tags: false,
-		keep_spaces_between_attributes: true,
+		allow_removing_spaces_between_attributes: false,
 		keep_comments: false,
 		minify_css: true,
-		minify_js: true,
+		// TODO: re-enabled this, currently needed as a workaround for a minify_js bug:
+		minify_js: false,
 		remove_bangs: true,
 		remove_processing_instructions: true,
 		..Cfg::default()

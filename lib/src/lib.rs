@@ -1,4 +1,18 @@
+//! Basic Pinger types and cryptographic operations
+//!
+//! # Java FFI
+//!
+//! If the `java-ffi` feature is enabled, this crate exposes several `no_mangle`
+//! JNI functions.
+//! The functions are in the `dev.janm.pinger` Java namespace (symbols starting
+//! with `Java_dev_janm_pinger_`).
+//! It is the responsibility of the user of this crate to ensure that (if the
+//! `java-ffi` feature is enabled) no other symbols conflict with these ones,
+//! i.e. that no other part of the final program/object file defines symbols
+//! starting with `Java_dev_janm_pinger_`.
+
 #![cfg_attr(not(feature = "std"), no_std)]
+#![cfg_attr(not(feature = "java-ffi"), forbid(unsafe_code))]
 
 use core::{
 	fmt::{Debug, Display, Formatter, Result as FmtResult},
@@ -6,7 +20,7 @@ use core::{
 };
 
 use chacha20poly1305::{
-	aead::OsRng, AeadCore, AeadInPlace, ChaCha20Poly1305, Error as ChaChaError, KeyInit,
+	AeadCore, AeadInPlace, ChaCha20Poly1305, Error as ChaChaError, KeyInit, aead::OsRng,
 };
 use serde::{Deserialize, Serialize};
 pub use x25519_dalek::{EphemeralSecret, PublicKey, SharedSecret};
@@ -14,6 +28,7 @@ pub use x25519_dalek::{EphemeralSecret, PublicKey, SharedSecret};
 #[cfg(feature = "java-ffi")]
 pub mod java_ffi;
 
+/// An error during a cryptographic operation, opaque on purpose
 #[derive(Debug)]
 pub struct CryptoError;
 
@@ -29,15 +44,20 @@ impl From<ChaChaError> for CryptoError {
 	}
 }
 
+/// The shared symmetric encryption key
 #[derive(Clone, Copy)]
 pub struct SharedKey([u8; 32]);
 
 impl SharedKey {
-	pub fn from_bytes(bytes: [u8; 32]) -> Self {
+	/// Create a `SharedKey` from the given byte array
+	#[must_use]
+	pub const fn from_bytes(bytes: [u8; 32]) -> Self {
 		Self(bytes)
 	}
 
-	pub fn to_bytes(self) -> [u8; 32] {
+	/// Convert this `SharedKey` into a byte array
+	#[must_use]
+	pub const fn to_bytes(self) -> [u8; 32] {
 		self.0
 	}
 }
@@ -54,6 +74,10 @@ impl Debug for SharedKey {
 	}
 }
 
+/// Encrypted [`PingInfo`]
+///
+/// Includes the `b"PING"` magic number, the AEAD nonce, the encrypted encoded
+/// ping info, and the AEAD tag.
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub struct EncryptedPingInfo(#[serde(with = "serde_encrypted_ping_info")] [u8; 64]);
 
@@ -63,16 +87,26 @@ impl AsRef<[u8]> for EncryptedPingInfo {
 	}
 }
 
+/// Information about a ping
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub struct PingInfo {
+	/// The timestamp of the position data
 	pub ts: Timestamp,
+	/// The latitude in degrees
 	pub lat: Degrees,
+	/// The longitude in degrees
 	pub lon: Degrees,
+	/// The altitude in meters above mean sea level
 	pub alt: Meters,
+	/// The position error in meters
 	pub err: Meters,
 }
 
 impl PingInfo {
+	/// Encode an encrypt this `PingInfo` using the given shared key
+	///
+	/// # Errors
+	/// If encryption fails, a [`CryptoError`] is returned
 	pub fn encrypt(self, key: impl Into<SharedKey>) -> Result<EncryptedPingInfo, CryptoError> {
 		let mut encoded = self.encode();
 		let nonce = ChaCha20Poly1305::generate_nonce(&mut OsRng);
@@ -89,6 +123,16 @@ impl PingInfo {
 		Ok(EncryptedPingInfo(buf))
 	}
 
+	/// Decrypt and decode the given Ping info using the given shared key
+	///
+	/// # Errors
+	/// If the magic number is missing or decryption fails, a [`CryptoError`] is
+	/// returned
+	#[expect(
+		clippy::missing_panics_doc,
+		reason = "the possibly-panicking unwrap is converting a 32-byte slice into a 32-byte \
+		          array, and therefore can't panic"
+	)]
 	pub fn decrypt(
 		bytes: EncryptedPingInfo,
 		key: impl Into<SharedKey>,
@@ -109,6 +153,7 @@ impl PingInfo {
 		Ok(Self::decode(buf.try_into().unwrap()))
 	}
 
+	/// Encode this [`PingInfo`] into bytes
 	fn encode(self) -> [u8; 32] {
 		let mut buf = [0u8; 32];
 		buf[0..8].copy_from_slice(&self.ts.0.to_be_bytes());
@@ -119,6 +164,7 @@ impl PingInfo {
 		buf
 	}
 
+	/// Decode a [`PingInfo`] from bytes
 	fn decode(bytes: [u8; 32]) -> Self {
 		let ts = u64::from_be_bytes(bytes[0..8].try_into().unwrap());
 		let lat = f64::from_be_bytes(bytes[8..16].try_into().unwrap());
@@ -136,12 +182,15 @@ impl PingInfo {
 	}
 }
 
+/// Degrees of latitude or longitude, stored in an `f64`
 #[derive(Clone, Copy, Debug, PartialEq, PartialOrd, Serialize, Deserialize)]
 pub struct Degrees(pub f64);
 
+/// Meters, stored in an `f32`
 #[derive(Clone, Copy, Debug, PartialEq, PartialOrd, Serialize, Deserialize)]
 pub struct Meters(pub f32);
 
+/// A timestamp as seconds since the unix epoch
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct Timestamp(pub u64);
 
@@ -151,13 +200,14 @@ mod serde_encrypted_ping_info {
 		str,
 	};
 
-	use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine};
+	use base64::{Engine, engine::general_purpose::URL_SAFE_NO_PAD};
 	use serde::{
+		Deserialize, Deserializer, Serializer,
 		de::{Error as DeError, Expected, Unexpected},
 		ser::Error as SerError,
-		Deserialize, Deserializer, Serializer,
 	};
 
+	/// Serialize the `val`ue by base64-encoding it
 	pub fn serialize<S: Serializer>(val: &[u8; 64], ser: S) -> Result<S::Ok, S::Error> {
 		let mut buf = [0u8; 86];
 
@@ -171,6 +221,7 @@ mod serde_encrypted_ping_info {
 		)
 	}
 
+	/// Deserialize a value by base64-decoding it
 	pub fn deserialize<'de, D: Deserializer<'de>>(de: D) -> Result<[u8; 64], D::Error> {
 		struct Expected64ByteSlice;
 

@@ -1,16 +1,20 @@
+//! Serde support for types in this crate
+
+/// Serde support for Pinger public keys
 pub mod public_key {
 	use core::{
 		fmt::{Formatter, Result as FmtResult},
 		str,
 	};
 
-	use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine};
+	use base64::{Engine, engine::general_purpose::URL_SAFE_NO_PAD};
 	use serde::{
+		Deserialize, Deserializer, Serializer,
 		de::{Error as DeError, Expected, Unexpected},
 		ser::Error as SerError,
-		Deserialize, Deserializer, Serializer,
 	};
 
+	/// Serialize the public key
 	pub fn serialize<S: Serializer>(val: &pinger::PublicKey, ser: S) -> Result<S::Ok, S::Error> {
 		let mut buf = [0u8; 43];
 
@@ -24,6 +28,7 @@ pub mod public_key {
 		)
 	}
 
+	/// Deserialize a public key
 	pub fn deserialize<'de, D: Deserializer<'de>>(de: D) -> Result<pinger::PublicKey, D::Error> {
 		struct Expected32ByteSlice;
 

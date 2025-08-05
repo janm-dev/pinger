@@ -1,12 +1,12 @@
 [package]
 name = "pinger-backend"
 version = "0.1.0"
-edition = "2021"
+edition = "2024"
 license = "MPL-2.0"
 publish = false
 
 [dependencies]
-axum = { version = "0.7.9", default-features = false, features = [
+axum = { version = "0.8.4", default-features = false, features = [
 	"http1",
 	"http2",
 	"tokio",
@@ -32,4 +32,15 @@ tracing-subscriber = { version = "0.3.19", features = [
 regex = "1.11.1"
 
 [build-dependencies]
-minify-html = "0.15.0"
+minify-html = "0.16.4"
+
+[lints]
+rust.unsafe_code = "forbid"
+clippy.pedantic = { level = "warn", priority = -1 }
+clippy.cargo = { level = "warn", priority = -1 }
+clippy.nursery = { level = "warn", priority = -1 }
+rust.missing_docs = "warn"
+rustdoc.missing_crate_level_docs = "warn"
+clippy.multiple_crate_versions = "allow"
+clippy.tabs_in_doc_comments = "allow"
+clippy.module_name_repetitions = "allow"

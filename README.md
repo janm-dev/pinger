@@ -94,6 +94,8 @@ Do not attempt to recover from cryptogaphic errors (e.g. message authentication 
 
 ### Security
 
+> [!WARNING]
+>
 > The cryptography discussed below was **not** implemented or reviewed by security professionals (though it is implemented on top of [audited](https://docs.rs/chacha20poly1305), [widely used](https://docs.rs/x25519-dalek) libraries).
 > It's entirely possible that it does not provide any protection at all, in which case the TLS of the secure WebSocket connection between the clients and the server is the only protection left.
 > Below are the optimistically-stated goals of doing this extra cryptography.

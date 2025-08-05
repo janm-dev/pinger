@@ -1,7 +1,7 @@
 [package]
 name = "pinger"
 version = "0.1.0"
-edition = "2021"
+edition = "2024"
 license = "MPL-2.0"
 publish = false
 
@@ -25,3 +25,14 @@ x25519-dalek = { version = "2.0.1", features = [
 	"getrandom",
 	"static_secrets",
 ] }
+
+[lints]
+rust.unsafe_code = "deny"
+clippy.pedantic = { level = "warn", priority = -1 }
+clippy.cargo = { level = "warn", priority = -1 }
+clippy.nursery = { level = "warn", priority = -1 }
+rust.missing_docs = "warn"
+rustdoc.missing_crate_level_docs = "warn"
+clippy.multiple_crate_versions = "allow"
+clippy.tabs_in_doc_comments = "allow"
+clippy.module_name_repetitions = "allow"

@@ -63,4 +63,4 @@ jobs:
         with:
           components: clippy
       - uses: Swatinem/rust-cache@v2
-      - run: cargo +nightly clippy --all --manifest-path ${{ matrix.dir }}/Cargo.toml -- -D warnings
+      - run: cargo +nightly clippy --all --manifest-path ${{ matrix.dir }}/Cargo.toml --all-features -- -D warnings

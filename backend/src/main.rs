@@ -1,3 +1,5 @@
+//! The Pinger backend server
+
 use std::{
 	collections::HashMap,
 	env,
@@ -8,11 +10,11 @@ use std::{
 };
 
 use axum::{
-	extract::{ws::Message as WsMessage, State, WebSocketUpgrade},
-	http::{HeaderName, HeaderValue, StatusCode},
-	response::{Html, IntoResponse, Response},
-	routing::get,
 	Router,
+	extract::{State, WebSocketUpgrade, ws::Message as WsMessage},
+	http::{HeaderName, HeaderValue, StatusCode},
+	response::{IntoResponse, Response},
+	routing::get,
 };
 use pinger::EncryptedPingInfo;
 use rand::Rng;
@@ -21,14 +23,15 @@ use thiserror::Error;
 use tokio::{
 	net::TcpListener,
 	select,
-	sync::mpsc::{self, error::SendError as ChannelSendError, Sender},
+	sync::mpsc::{self, Sender, error::SendError as ChannelSendError},
 };
 use tracing::{debug, error, info, instrument};
-use tracing_subscriber::{fmt, prelude::*, EnvFilter};
+use tracing_subscriber::{EnvFilter, fmt, prelude::*};
 
 mod serde_support;
 mod tests;
 
+/// Serve a static asset named `name` with a `Content-Type` of `type` over HTTP
 macro_rules! serve_asset {
 	($name:literal, $type:literal) => {{
 		#[instrument(name = $name)]
@@ -49,12 +52,30 @@ macro_rules! serve_asset {
 	}};
 }
 
-macro_rules! include_html {
-	($name:literal) => {
-		include_str!(concat!(env!("OUT_DIR"), concat!("/", $name, ".html")))
-	};
+/// Serve a minified HTML file named `name`
+///
+/// This file must have been minified in the build script
+macro_rules! serve_html {
+	($name:literal) => {{
+		#[instrument(name = $name)]
+		async fn serve_html() -> impl IntoResponse {
+			(
+				Response::builder()
+					.header(
+						HeaderName::from_static("content-type"),
+						HeaderValue::from_static("text/html"),
+					)
+					.body(())
+					.unwrap(),
+				include_str!(concat!(env!("OUT_DIR"), concat!("/", $name, ".html"))),
+			)
+		}
+
+		get(serve_html)
+	}};
 }
 
+/// A Ping ID, a 2- or 3-digit number
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, Serialize, Deserialize)]
 struct Id(pub u16);
 
@@ -64,9 +85,11 @@ impl Display for Id {
 	}
 }
 
+/// A Pinger public key
 #[derive(Clone, Copy, Debug, Serialize, Deserialize)]
 struct PublicKey(#[serde(with = "serde_support::public_key")] pinger::PublicKey);
 
+/// A websocket message sent by the server to a client
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case", tag = "msg")]
 enum ServerClientMessage {
@@ -75,6 +98,7 @@ enum ServerClientMessage {
 	Error { details: String },
 }
 
+/// A websocket message sent a client to another
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case", tag = "msg")]
 enum ClientClientMessage {
@@ -109,6 +133,7 @@ enum ClientDownMessage {
 	},
 }
 
+/// An error when sending a Pinger websocket message
 #[derive(Debug, Clone, Error)]
 enum SendError {
 	#[error("id {0} not found")]
@@ -117,12 +142,14 @@ enum SendError {
 	ChannelError(#[from] ChannelSendError<ClientDownMessage>),
 }
 
+/// The server context containing a map of all connections
 #[derive(Debug, Default)]
 struct Ctx {
 	connections: RwLock<HashMap<Id, Sender<ClientDownMessage>>>,
 }
 
 impl Ctx {
+	/// Relay a client-client message
 	async fn send(&self, to: Id, from: Id, msg: ClientClientMessage) -> Result<(), SendError> {
 		let Some(dest) = self
 			.connections
@@ -140,28 +167,38 @@ impl Ctx {
 		Ok(())
 	}
 
-	fn add_connection(&self, sender: Sender<ClientDownMessage>) -> Result<Id, Response> {
+	/// Add a new connection to the map
+	fn add_connection(&self, sender: Sender<ClientDownMessage>) -> Result<Id, impl IntoResponse> {
 		let mut conns = self.connections.write().expect("lock poisoned");
 
-		let id = Self::gen_id(&*conns).map_err(IntoResponse::into_response)?;
+		#[expect(clippy::question_mark, reason = "type inference")]
+		let id = match Self::gen_id(&*conns) {
+			Ok(id) => id,
+			Err(err) => return Err(err),
+		};
+
 		conns.insert(id, sender);
+
+		drop(conns);
 		Ok(id)
 	}
 
+	/// Drop a connection from the map
 	fn drop_connection(&self, id: Id) {
 		drop(self.connections.write().expect("lock poisoned").remove(&id));
 	}
 
-	fn gen_id<T>(connections: &HashMap<Id, T>) -> Result<Id, impl IntoResponse> {
+	/// Generate a random, unused Ping ID
+	fn gen_id<T>(connections: &HashMap<Id, T>) -> Result<Id, impl IntoResponse + use<T>> {
 		const MAX_RETRIES: usize = 100;
 		const ID_RANGE: RangeInclusive<u16> = 10..=999;
 
-		let mut rng = rand::thread_rng();
+		let mut rng = rand::rng();
 		let mut i = 0;
-		let mut id = rng.gen_range(ID_RANGE);
+		let mut id = rng.random_range(ID_RANGE);
 
 		while connections.contains_key(&Id(id)) {
-			id = rng.gen_range(ID_RANGE);
+			id = rng.random_range(ID_RANGE);
 			i += 1;
 
 			if i > MAX_RETRIES {
@@ -183,9 +220,9 @@ async fn main() {
 	let ctx = Arc::default();
 
 	let app = Router::new()
-		.route("/", get(index))
+		.route("/", serve_html!("index"))
 		.route("/api", get(pinger))
-		.route("/bug", get(bug_report))
+		.route("/bug", serve_html!("bug"))
 		.route("/favicon.ico", serve_asset!("favicon.ico", "image/x-icon"))
 		.route("/icon.svg", serve_asset!("icon.svg", "image/svg+xml"))
 		.route("/icon.png", serve_asset!("icon.png", "image/png"))
@@ -223,6 +260,7 @@ async fn main() {
 	axum::serve(listener, app).await.unwrap();
 }
 
+/// The Pinger API server
 #[instrument]
 async fn pinger(State(ctx): State<Arc<Ctx>>, upgrade: WebSocketUpgrade) -> Response {
 	const BUFFER_SIZE: usize = 2;
@@ -230,7 +268,7 @@ async fn pinger(State(ctx): State<Arc<Ctx>>, upgrade: WebSocketUpgrade) -> Respo
 	let (sender, mut receiver) = mpsc::channel(BUFFER_SIZE);
 	let id = match ctx.add_connection(sender.clone()) {
 		Ok(id) => id,
-		Err(e) => return e,
+		Err(e) => return e.into_response(),
 	};
 
 	sender
@@ -290,7 +328,7 @@ async fn pinger(State(ctx): State<Arc<Ctx>>, upgrade: WebSocketUpgrade) -> Respo
 						break;
 					};
 
-					if let Err(e) = ws.send(WsMessage::Text(serde_json::to_string(&msg).expect("failed to serialize message"))).await {
+					if let Err(e) = ws.send(WsMessage::Text(serde_json::to_string(&msg).expect("failed to serialize message").into())).await {
 						debug!("error sending websocket message: {e}");
 					}
 				},
@@ -299,14 +337,4 @@ async fn pinger(State(ctx): State<Arc<Ctx>>, upgrade: WebSocketUpgrade) -> Respo
 
 		ctx.drop_connection(id);
 	})
-}
-
-#[instrument]
-async fn index() -> Html<&'static str> {
-	Html(include_html!("index"))
-}
-
-#[instrument]
-async fn bug_report() -> Html<&'static str> {
-	Html(include_html!("bug"))
 }

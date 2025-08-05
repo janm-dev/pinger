@@ -1,3 +1,9 @@
+//! A command-line interface for Pinger, intended mainly for testing the server
+//!
+//! Run with `./executable-name [SERVER]`, where `[SERVER]` is the optional
+//! websocket URI of the Pinger API (`wss://pinger.janm.dev/api` by default if
+//! not specified)
+
 use std::{
 	collections::HashMap,
 	env,
@@ -9,13 +15,13 @@ use std::{
 	time::{Duration, SystemTime},
 };
 
-use base64::engine::{general_purpose::URL_SAFE_NO_PAD, Engine};
+use base64::engine::{Engine, general_purpose::URL_SAFE_NO_PAD};
 use colored::Colorize;
 use derive_more::Display;
 use futures_util::{Sink, SinkExt, StreamExt};
 use inquire::{
-	validator::{ErrorMessage, Validation},
 	CustomType,
+	validator::{ErrorMessage, Validation},
 };
 use pinger::{Degrees, EphemeralSecret, Meters, PingInfo, SharedKey, Timestamp};
 use serde::{Deserialize, Serialize};
@@ -24,10 +30,12 @@ use tokio_tungstenite::tungstenite::Message;
 
 const DEFAULT_URL: &str = "wss://pinger.janm.dev/api";
 
+/// A Ping ID, a 2- or 3-digit number
 #[derive(Clone, Copy, Debug, Display, Hash, PartialEq, Eq, Serialize, Deserialize)]
-#[display(fmt = "{_0}")]
+#[display("{_0}")]
 struct Id(pub u16);
 
+/// A public key for the Pinger key exchange
 #[derive(Clone, Copy, Debug, Serialize, Deserialize)]
 struct PublicKey(#[serde(with = "serde_public_key")] pinger::PublicKey);
 
@@ -46,6 +54,7 @@ impl Display for PublicKey {
 	}
 }
 
+/// Encrypted Ping info
 #[derive(Clone, Copy, Debug, Serialize, Deserialize)]
 #[serde(transparent)]
 struct EncryptedPingInfo(pinger::EncryptedPingInfo);
@@ -65,35 +74,37 @@ impl Display for EncryptedPingInfo {
 	}
 }
 
+/// A message sent from the server to a client
 #[derive(Clone, Debug, Display, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case", tag = "msg")]
 enum ServerClientMessage {
-	#[display(fmt = "Connected as {id}")]
+	#[display("Connected as {id}")]
 	Connected { id: Id },
-	#[display(fmt = "Id {id} not found")]
+	#[display("Id {id} not found")]
 	NoSuchId { id: Id },
-	#[display(fmt = "Error: {details}")]
+	#[display("Error: {details}")]
 	Error { details: String },
 }
 
+/// A message sent from one client to another
 #[derive(Clone, Debug, Display, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case", tag = "msg")]
 enum ClientClientMessage {
-	#[display(fmt = "Ping requested with key {key}")]
+	#[display("Ping requested with key {key}")]
 	PingRequest { key: PublicKey },
-	#[display(fmt = "Ping accepted with key {key}")]
+	#[display("Ping accepted with key {key}")]
 	AcceptPing { key: PublicKey },
-	#[display(fmt = "Ping rejected")]
+	#[display("Ping rejected")]
 	RejectPing,
-	#[display(fmt = "Ping received (ping info is encrypted)")]
+	#[display("Ping received (ping info is encrypted)")]
 	Ping { info: EncryptedPingInfo },
-	#[display(fmt = "Ping acknowledged")]
+	#[display("Ping acknowledged")]
 	PingAck,
 }
 
 /// A message sent by a client to the server or via the server to another client
 #[derive(Clone, Debug, Display, Serialize, Deserialize)]
-#[display(fmt = "{msg} to {to}")]
+#[display("{msg} to {to}")]
 struct ClientUpMessage {
 	to: Id,
 	#[serde(flatten)]
@@ -105,19 +116,20 @@ struct ClientUpMessage {
 #[derive(Clone, Debug, Display, Serialize, Deserialize)]
 #[serde(untagged)]
 enum ClientDownMessage {
-	#[display(fmt = "{msg} by {from}")]
+	#[display("{msg} by {from}")]
 	FromClient {
 		from: Id,
 		#[serde(flatten)]
 		msg: ClientClientMessage,
 	},
-	#[display(fmt = "{msg}")]
+	#[display("{msg}")]
 	FromServer {
 		#[serde(flatten)]
 		msg: ServerClientMessage,
 	},
 }
 
+/// Implement `Debug` and `Display` for the wrapped value by writing `...`
 struct OpaqueFmt<T>(pub T);
 
 impl<T> Debug for OpaqueFmt<T> {
@@ -132,12 +144,17 @@ impl<T> Display for OpaqueFmt<T> {
 	}
 }
 
+/// An incoming Ping info exchange, either waiting for a user decision or the
+/// encrypted Ping info
 #[derive(Debug)]
 enum IncomingExchange {
 	Deciding(PublicKey),
 	AwaitingPing(SharedKey),
 }
 
+/// The outgoing Ping info exchange, either none (if the user hasn't Pinged
+/// anyone yet), waiting for the remote user's decision, or waiting for the
+/// remote user's acknowledgment
 #[derive(Debug, Default)]
 enum OutgoingExchange {
 	#[default]
@@ -147,18 +164,23 @@ enum OutgoingExchange {
 }
 
 impl OutgoingExchange {
-	fn is_none(&self) -> bool {
+	/// Check if there is no outgoing Ping info exchange
+	const fn is_none(&self) -> bool {
 		matches!(self, Self::None)
 	}
 }
 
+/// An open server connection
 #[derive(Debug, Default)]
 struct Connection {
+	/// The outgoing Ping info exchange
 	outgoing: OutgoingExchange,
+	/// The incoming Ping info exchanges from each ID
 	incoming: HashMap<Id, IncomingExchange>,
 }
 
 #[tokio::main]
+#[allow(clippy::too_many_lines)]
 async fn main() -> ExitCode {
 	let url = env::args()
 		.nth(1)
@@ -175,26 +197,29 @@ async fn main() -> ExitCode {
 	let (line_tx, mut line_rx) = mpsc::unbounded_channel();
 	let (stdin_locked, stdin_cv) = &*Box::leak(Box::new((Mutex::new(false), Condvar::new())));
 
-	thread::spawn(move || loop {
-		let mut buf = String::new();
+	thread::spawn(move || {
+		loop {
+			let mut buf = String::new();
 
-		let mut g = stdin_locked.lock().expect("lock poisoned");
+			let mut g = stdin_locked.lock().expect("lock poisoned");
 
-		if *g {
-			g = stdin_cv.wait_while(g, |l| *l).expect("lock poisoned");
-		}
+			if *g {
+				g = stdin_cv.wait_while(g, |l| *l).expect("lock poisoned");
+			}
 
-		*g = true;
+			*g = true;
+			drop(g);
 
-		if line_tx
-			.send(
-				io::stdin()
-					.read_line(&mut buf)
-					.map(move |_| buf.trim().to_string()),
-			)
-			.is_err()
-		{
-			return;
+			if line_tx
+				.send(
+					io::stdin()
+						.read_line(&mut buf)
+						.map(move |_| buf.trim().to_string()),
+				)
+				.is_err()
+			{
+				return;
+			}
 		}
 	});
 
@@ -298,14 +323,19 @@ async fn main() -> ExitCode {
 	}
 }
 
+/// A user action relating to a Ping
 #[derive(Debug)]
 enum PingAction {
+	/// Send a Ping
 	New,
+	/// Accept an incoming Ping
 	Accept,
+	/// Reject an incoming Ping
 	Reject,
 }
 
 impl PingAction {
+	/// Perform this action
 	async fn perform<W>(self, id: Id, conn: &mut Connection, write: &mut W)
 	where
 		W: Sink<Message> + Unpin,
@@ -345,7 +375,7 @@ impl PingAction {
 					return;
 				};
 
-				if let Err(e) = write.send(Message::Text(acc)).await {
+				if let Err(e) = write.send(Message::Text(acc.into())).await {
 					println!(
 						"{} {}",
 						"Error sending acceptation".red().bold(),
@@ -380,7 +410,7 @@ impl PingAction {
 					return;
 				};
 
-				if let Err(e) = write.send(Message::Text(rej)).await {
+				if let Err(e) = write.send(Message::Text(rej.into())).await {
 					println!(
 						"{} {}",
 						"Error sending rejection".red().bold(),
@@ -392,6 +422,7 @@ impl PingAction {
 	}
 }
 
+/// Send a Ping to `id`
 async fn send_ping<W>(id: Id, conn: &mut Connection, write: &mut W)
 where
 	W: Sink<Message> + Unpin,
@@ -494,7 +525,7 @@ where
 		return;
 	};
 
-	if let Err(e) = write.send(Message::Text(req)).await {
+	if let Err(e) = write.send(Message::Text(req.into())).await {
 		println!(
 			"{} {}",
 			"Error sending ping request".red().bold(),
@@ -503,9 +534,14 @@ where
 		return;
 	}
 
-	conn.outgoing = OutgoingExchange::AwaitingDecision(id, info, OpaqueFmt(secret))
+	conn.outgoing = OutgoingExchange::AwaitingDecision(id, info, OpaqueFmt(secret));
 }
 
+/// Handle an incoming websocket message
+#[expect(
+	clippy::too_many_lines,
+	reason = "there are a lot of messages to handle"
+)]
 async fn handle_message<W>(msg: ClientDownMessage, conn: &mut Connection, write: &mut W)
 where
 	W: Sink<Message> + Unpin,
@@ -552,7 +588,8 @@ where
 									),
 								},
 							})
-							.map_err(|_| "failed to serialize message")?,
+							.map_err(|_| "failed to serialize message")?
+							.into(),
 						)),
 					)
 				})() {
@@ -693,8 +730,10 @@ where
 					(SystemTime::UNIX_EPOCH.checked_add(Duration::from_secs(info.ts.0)))
 						.unwrap_or_else(|| SystemTime::now() + Duration::from_secs(60))
 						.elapsed()
-						.map(|d| d.as_secs().to_string())
-						.unwrap_or("a negative amount of".to_string())
+						.map_or_else(
+							|err| format!("-{}", err.duration().as_secs()),
+							|d| d.as_secs().to_string(),
+						)
 				)
 				.bold(),
 				format!(
@@ -712,7 +751,7 @@ where
 				return;
 			};
 
-			if let Err(e) = write.send(Message::Text(ack)).await {
+			if let Err(e) = write.send(Message::Text(ack.into())).await {
 				println!(
 					"{} {}",
 					"Error sending acknowledgement".red().bold(),
@@ -735,19 +774,21 @@ where
 	}
 }
 
+/// Serde support for the public key
 mod serde_public_key {
 	use core::{
 		fmt::{Formatter, Result as FmtResult},
 		str,
 	};
 
-	use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine};
+	use base64::{Engine, engine::general_purpose::URL_SAFE_NO_PAD};
 	use serde::{
+		Deserialize, Deserializer, Serializer,
 		de::{Error as DeError, Expected, Unexpected},
 		ser::Error as SerError,
-		Deserialize, Deserializer, Serializer,
 	};
 
+	/// Serialize the public key
 	pub fn serialize<S: Serializer>(val: &pinger::PublicKey, ser: S) -> Result<S::Ok, S::Error> {
 		let mut buf = [0u8; 43];
 
@@ -761,6 +802,7 @@ mod serde_public_key {
 		)
 	}
 
+	/// Deserialize a public key
 	pub fn deserialize<'de, D: Deserializer<'de>>(de: D) -> Result<pinger::PublicKey, D::Error> {
 		struct Expected32ByteSlice;
 
