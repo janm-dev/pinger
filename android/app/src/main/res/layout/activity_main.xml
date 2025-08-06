@@ -31,16 +31,17 @@
 			android:elevation="8dp">
 
 			<androidx.constraintlayout.widget.ConstraintLayout
-				android:id="@+id/decisionLayout"
+				android:id="@+id/slideUpWrapper"
 				style="@style/bottom_width"
-				android:layout_height="fill_parent"
+				android:layout_height="wrap_content"
 				android:layout_gravity="center_horizontal"
-				app:layout_constraintBottom_toBottomOf="parent"
+				android:layout_marginBottom="-24dp"
+				app:layout_constraintBottom_toTopOf="@+id/bottomLayoutWrapper"
 				app:layout_constraintEnd_toEndOf="parent"
 				app:layout_constraintStart_toStartOf="parent">
 
 				<LinearLayout
-					android:id="@+id/slideUpLayoutInner"
+					android:id="@+id/slideUpLayout"
 					android:layout_width="match_parent"
 					android:layout_height="88dp"
 					android:layout_marginBottom="-24dp"
@@ -48,7 +49,7 @@
 					android:backgroundTint="@color/info"
 					android:elevation="8dp"
 					android:orientation="horizontal"
-					app:layout_constraintBottom_toTopOf="@+id/decisionLayoutInner"
+					app:layout_constraintBottom_toTopOf="@+id/decisionLayout"
 					app:layout_constraintEnd_toEndOf="parent"
 					app:layout_constraintStart_toStartOf="parent">
 
@@ -68,10 +69,9 @@
 				</LinearLayout>
 
 				<LinearLayout
-					android:id="@+id/decisionLayoutInner"
+					android:id="@+id/decisionLayout"
 					android:layout_width="match_parent"
 					android:layout_height="96dp"
-					android:layout_marginBottom="80dp"
 					android:background="@drawable/slideup_background"
 					android:backgroundTint="@color/decision"
 					android:elevation="12dp"
@@ -121,7 +121,7 @@
 			<LinearLayout
 				android:id="@+id/bottomLayoutWrapper"
 				android:layout_width="match_parent"
-				android:layout_height="104dp"
+				android:layout_height="wrap_content"
 				android:background="@drawable/bottom_background"
 				android:elevation="16dp"
 				android:orientation="vertical"
@@ -174,6 +174,11 @@
 					android:textAlignment="center"
 					android:textColor="@color/white"
 					android:textSize="12sp" />
+
+				<Space
+					android:id="@+id/navPadding"
+					android:layout_width="match_parent"
+					android:layout_height="0dp"/>
 
 			</LinearLayout>
 

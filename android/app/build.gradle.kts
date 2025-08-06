@@ -1,3 +1,4 @@
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import java.time.Instant
 import java.time.ZoneOffset
 import java.time.ZonedDateTime
@@ -11,15 +12,16 @@ plugins {
 
 android {
 	namespace = "dev.janm.pinger"
-	compileSdk = 34
-	buildToolsVersion = "34.0.0"
+	compileSdk = 36
+	buildToolsVersion = "36.0.0"
+	ndkVersion = "27.0.12077973"
 
 	defaultConfig {
 		val now = System.currentTimeMillis()
 
 		applicationId = "dev.janm.pinger"
 		minSdk = 21
-		targetSdk = 34
+		targetSdk = 36
 		versionCode = (now / 10000).toInt()
 		versionName = DateTimeFormatter.ofPattern("uuuu.MM.dd.A").format(ZonedDateTime.ofInstant(Instant.ofEpochMilli(now), ZoneOffset.UTC))
 		signingConfig = signingConfigs.getByName("debug")
@@ -50,8 +52,10 @@ android {
 		targetCompatibility = JavaVersion.VERSION_1_8
 	}
 
-	kotlinOptions {
-		jvmTarget = "1.8"
+	kotlin {
+		compilerOptions {
+			jvmTarget = JvmTarget.JVM_1_8
+		}
 	}
 
 	buildFeatures {

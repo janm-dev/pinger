@@ -4,6 +4,7 @@ import android.Manifest
 import android.content.pm.PackageManager
 import android.location.Location
 import android.location.LocationManager
+import android.location.LocationRequest
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -14,7 +15,9 @@ import android.widget.Button
 import android.widget.EditText
 import android.widget.ImageButton
 import android.widget.LinearLayout
+import android.widget.Space
 import android.widget.TextView
+import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.DrawableRes
 import androidx.appcompat.app.AppCompatActivity
@@ -35,13 +38,16 @@ import org.osmdroid.views.overlay.mylocation.GpsMyLocationProvider
 import org.osmdroid.views.overlay.mylocation.MyLocationNewOverlay
 import java.net.URL
 import java.util.logging.Logger
-import dev.janm.pinger.PingInfo
 import org.osmdroid.util.GeoPoint
 import org.osmdroid.views.overlay.Marker
 import java.io.InputStreamReader
 import java.util.Timer
 import java.util.TimerTask
 import kotlin.system.exitProcess
+import androidx.core.net.toUri
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.updateLayoutParams
 
 private const val MIN_ZOOM_LEVEL = 2.0
 private const val MAX_ZOOM_LEVEL = 22.0
@@ -69,7 +75,7 @@ class MainActivity: AppCompatActivity() {
 		Thread.setDefaultUncaughtExceptionHandler { t, e ->
 			val app = try {
 				"${resources.getString(R.string.app_name)}/${packageManager.getPackageInfo(packageName, 0).versionName} (Android ${Build.VERSION.RELEASE})"
-			} catch (e: Exception) {
+			} catch (_: Exception) {
 				"Pinger/? (Android ${Build.VERSION.RELEASE})"
 			}
 
@@ -99,7 +105,7 @@ class MainActivity: AppCompatActivity() {
 				CustomTabsIntent.Builder()
 					.setColorScheme(CustomTabsIntent.COLOR_SCHEME_DARK)
 					.build()
-					.launchUrl(this, Uri.parse(uri))
+					.launchUrl(this, uri.toUri())
 
 				logger.severe("Uncaught exception: $e")
 				exitProcess(1)
@@ -112,6 +118,7 @@ class MainActivity: AppCompatActivity() {
 			" (Android ${Build.VERSION.RELEASE};" +
 			" osmdroid/${OsmdroidBuildInfo.VERSION})"
 
+		enableEdgeToEdge()
 		setContentView(R.layout.activity_main)
 
 		val instance = getInstance()
@@ -124,39 +131,52 @@ class MainActivity: AppCompatActivity() {
 
 		val idIndicator = findViewById<TextView>(R.id.myPingId)
 		val slideUpText = findViewById<TextView>(R.id.slideUpText)
-		val slideUpLayoutInner = findViewById<LinearLayout>(R.id.slideUpLayoutInner)
+		val slideUpLayout = findViewById<LinearLayout>(R.id.slideUpLayout)
 		val decisionText = findViewById<TextView>(R.id.decisionText)
-		val decisionLayout = findViewById<ConstraintLayout>(R.id.decisionLayout)
-		val decisionLayoutInner = findViewById<LinearLayout>(R.id.decisionLayoutInner)
-		val getDecisionLayoutInnerOffset = { decisionLayoutInner.height.toFloat() + slideUpLayoutInner.marginBottom.toFloat() }
-		val getSlideUpLayoutInnerOffset = { slideUpLayoutInner.height.toFloat() }
+		val decisionLayout = findViewById<LinearLayout>(R.id.decisionLayout)
+		val slideUpWrapper = findViewById<ConstraintLayout>(R.id.slideUpWrapper)
+		val getDecisionLayoutOffset = { decisionLayout.height.toFloat() + slideUpLayout.marginBottom.toFloat() }
+		val getSlideUpLayoutOffset = { slideUpLayout.height.toFloat() }
+		val navPadding = findViewById<Space>(R.id.navPadding)
+
+		ViewCompat.setOnApplyWindowInsetsListener(window.decorView.rootView) { _, insets ->
+			navPadding.post {
+				navPadding.updateLayoutParams {
+					height = insets.getInsets(WindowInsetsCompat.Type.systemBars()).bottom
+				}
+			}
+
+			insets
+		}
 
 		idIndicator.text = getString(R.string.user_s_ping_id).replace("{id}", "000")
 		idIndicator.post { idIndicator.text = getString(R.string.user_s_ping_id).replace("{id}", "...") }
 
-		decisionLayout.post { decisionLayout.translationY = getDecisionLayoutInnerOffset() }
+		slideUpWrapper.post { slideUpWrapper.translationY = getDecisionLayoutOffset() }
+		slideUpLayout.post { slideUpLayout.translationY = getSlideUpLayoutOffset() }
+
 		var decidingOn: Pinger.Id? = null
 		fun showDecision(id: Pinger.Id) {
 			decisionText.post {
 				decidingOn = id
 				decisionText.text = getString(R.string.accept_ping_questionmark).replace("{id}", id.toString())
-				SpringAnimation(decisionLayout, DynamicAnimation.TRANSLATION_Y, 0.0f).start()
+				SpringAnimation(slideUpWrapper, DynamicAnimation.TRANSLATION_Y, 0.0f).start()
 			}
 		}
 
 		fun hideDecision(id: Pinger.Id) {
-			decisionLayout.post {
+			slideUpWrapper.post {
 				if (decidingOn == id) {
 					SpringAnimation(
-						decisionLayout,
+						slideUpWrapper,
 						DynamicAnimation.TRANSLATION_Y,
-						getDecisionLayoutInnerOffset()
+						getDecisionLayoutOffset()
 					).start()
 				}
 			}
 		}
 
-		slideUpLayoutInner.post { slideUpLayoutInner.translationY = getSlideUpLayoutInnerOffset() }
+		slideUpLayout.post { slideUpLayout.translationY = getSlideUpLayoutOffset() }
 		var slideUpEpoch = 0
 		fun showSlideUp(text: String, @DrawableRes icon: Int = 0, showFor: Long = 5000) {
 			var currentEpoch: Int? = null
@@ -165,15 +185,15 @@ class MainActivity: AppCompatActivity() {
 				currentEpoch = slideUpEpoch
 				slideUpText.setCompoundDrawablesRelativeWithIntrinsicBounds(icon, 0, 0, 0)
 				slideUpText.text = text
-				SpringAnimation(slideUpLayoutInner, DynamicAnimation.TRANSLATION_Y, 0.0f).start()
+				SpringAnimation(slideUpLayout, DynamicAnimation.TRANSLATION_Y, 0.0f).start()
 			}
 
-			slideUpLayoutInner.postDelayed({
+			slideUpLayout.postDelayed({
 				if (currentEpoch == slideUpEpoch) {
 					SpringAnimation(
-						slideUpLayoutInner,
+						slideUpLayout,
 						DynamicAnimation.TRANSLATION_Y,
-						getSlideUpLayoutInnerOffset()
+						getSlideUpLayoutOffset()
 					).start()
 				}
 			}, showFor)
@@ -194,7 +214,7 @@ class MainActivity: AppCompatActivity() {
 		map.setTileSource(object: XYTileSource(
 			"OpenStreetMap",
 			0,
-			20,
+			19,
 			256,
 			"",
 			arrayOf(getString(R.string.tile_url)),
@@ -217,16 +237,8 @@ class MainActivity: AppCompatActivity() {
 		}
 
 		val locationService = getSystemService(LOCATION_SERVICE)
-		val locationManager = if (locationService is LocationManager) {
-			locationService
-		} else {
-			throw RuntimeException("LOCATION_SERVICE is not a LocationManager")
-		}
-		val locationProvider = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && locationManager.allProviders.contains(LocationManager.FUSED_PROVIDER)) {
-			LocationManager.FUSED_PROVIDER
-		} else {
-			LocationManager.GPS_PROVIDER
-		}
+		val locationManager = locationService as? LocationManager
+			?: throw RuntimeException("LOCATION_SERVICE is not a LocationManager")
 
 		val locationOverlay = MyLocationNewOverlay(GpsMyLocationProvider(applicationContext), map)
 		map.overlays.add(locationOverlay)
@@ -404,17 +416,17 @@ class MainActivity: AppCompatActivity() {
 
 		acceptButton.setOnClickListener {
 			if (decidingOn != null) {
-				connection.accept(decidingOn!!)
+				connection.accept(decidingOn)
 				showSlideUp(getString(R.string.ping_accepted).replace("{id}", decidingOn.toString()), R.drawable.ping_accepted)
-				hideDecision(decidingOn!!)
+				hideDecision(decidingOn)
 			}
 		}
 
 		rejectButton.setOnClickListener {
 			if (decidingOn != null) {
-				connection.reject(decidingOn!!)
+				connection.reject(decidingOn)
 				showSlideUp(getString(R.string.ping_rejected).replace("{id}", decidingOn.toString()), R.drawable.ping_rejected)
-				hideDecision(decidingOn!!)
+				hideDecision(decidingOn)
 			}
 		}
 
@@ -461,15 +473,84 @@ class MainActivity: AppCompatActivity() {
 				(getSystemService(INPUT_METHOD_SERVICE) as? InputMethodManager)?.hideSoftInputFromWindow(view.windowToken, 0)
 				view.clearFocus()
 
-				//TODO: get new location (especially if no last known is available)
-				val location: Location = locationManager.getLastKnownLocation(locationProvider) ?: throw RuntimeException("no location available")
-				val info = PingInfo(location.time / 1000, location.latitude, location.longitude, location.altitude.toFloat(), location.accuracy)
+				fun send(location: Location?) {
+					try {
+						val location = location
+							?: (if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && locationManager.hasProvider(LocationManager.FUSED_PROVIDER)) {
+								locationManager.getLastKnownLocation(LocationManager.FUSED_PROVIDER)
+							} else {
+								null
+							})
+							?: (if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S && "fused" in locationManager.allProviders) {
+								locationManager.getLastKnownLocation("fused")
+							} else {
+								null
+							})
+							?: (if (LocationManager.GPS_PROVIDER in locationManager.allProviders) {
+								locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER)
+							} else {
+								null
+							})
+							?: locationManager.allProviders
+								.map { locationManager.getLastKnownLocation(it) }
+								.find { it != null }
+							?: throw RuntimeException("no location available")
 
-				connection.send(Pinger.Id(id.toShort()), info)
+						val info = PingInfo(
+							location.time / 1000,
+							location.latitude,
+							location.longitude,
+							location.altitude.toFloat(),
+							location.accuracy
+						)
+						connection.send(Pinger.Id(id.toShort()), info)
+						showSlideUp(
+							getString(R.string.ping_request_sent).replace("{id}", id),
+							R.drawable.ping_incoming
+						)
+					} catch (e: Exception) {
+						logger.warning("error sending ping: $e")
+						showSlideUp(getString(R.string.ping_error).replace("{msg}", e.message ?: e.toString()), R.drawable.ping_rejected)
+						pingButton.isEnabled = true
+					}
+				}
 
-				showSlideUp(getString(R.string.ping_request_sent).replace("{id}", id), R.drawable.ping_incoming)
+				if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+					val provider = if (locationManager.hasProvider(LocationManager.FUSED_PROVIDER)) {
+						LocationManager.FUSED_PROVIDER
+					} else if (locationManager.hasProvider(LocationManager.GPS_PROVIDER)) {
+						LocationManager.GPS_PROVIDER
+					} else {
+						locationManager.allProviders.firstOrNull() ?: throw RuntimeException("no location provider available")
+					}
+
+					val request = LocationRequest.Builder(10000).setQuality(LocationRequest.QUALITY_HIGH_ACCURACY).build()
+
+					locationManager.getCurrentLocation(provider, request, null, mainExecutor) { send(it) }
+				} else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+					val provider = if ("fused" in locationManager.allProviders) {
+						"fused"
+					} else if (LocationManager.GPS_PROVIDER in locationManager.allProviders) {
+						LocationManager.GPS_PROVIDER
+					} else {
+						locationManager.allProviders.firstOrNull() ?: throw RuntimeException("no location provider available")
+					}
+
+					locationManager.getCurrentLocation(provider, null, mainExecutor) { send(it) }
+				} else {
+					val provider = if ("fused" in locationManager.allProviders) {
+						"fused"
+					} else if (LocationManager.GPS_PROVIDER in locationManager.allProviders) {
+						LocationManager.GPS_PROVIDER
+					} else {
+						locationManager.allProviders.firstOrNull() ?: throw RuntimeException("no location provider available")
+					}
+
+					@Suppress("DEPRECATION") // This is a fallback for old versions
+					locationManager.requestSingleUpdate(provider, { send(it) }, null)
+				}
 			} catch (e: Exception) {
-				logger.warning("error sending ping: $e")
+				logger.warning("error getting location: $e")
 				showSlideUp(getString(R.string.ping_error).replace("{msg}", e.message ?: e.toString()), R.drawable.ping_rejected)
 				pingButton.isEnabled = true
 			}
