@@ -26,7 +26,7 @@ tokio = { version = "1.47.1", features = ["full"] }
 tokio-tungstenite = { version = "0.27.0", features = [
 	"rustls-tls-native-roots",
 ] }
-inquire = "0.8.0"
+inquire = "0.9.1"
 
 [lints.rust]
 unsafe_code = "forbid"
