@@ -6,7 +6,7 @@ license = "MPL-2.0"
 publish = false
 
 [dependencies]
-axum = { version = "0.8.6", default-features = false, features = [
+axum = { version = "0.8.7", default-features = false, features = [
 	"http1",
 	"http2",
 	"tokio",
