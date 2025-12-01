@@ -17,7 +17,7 @@ jobs:
       matrix:
         dir: ["backend", "cli", "lib"]
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
       - run: cargo check --manifest-path ${{ matrix.dir }}/Cargo.toml
@@ -26,7 +26,7 @@ jobs:
     name: Check Android
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: "aarch64-linux-android,arm-linux-androideabi,armv7-linux-androideabi,i686-linux-android,thumbv7neon-linux-androideabi,x86_64-linux-android"
@@ -50,7 +50,7 @@ jobs:
       matrix:
         dir: ["backend", "cli", "lib"]
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
       - run: cargo test --manifest-path ${{ matrix.dir }}/Cargo.toml
@@ -63,7 +63,7 @@ jobs:
       matrix:
         dir: ["backend", "cli", "lib"]
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - uses: dtolnay/rust-toolchain@nightly
         with:
           components: rustfmt
@@ -78,7 +78,7 @@ jobs:
       matrix:
         dir: ["backend", "cli", "lib"]
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - uses: dtolnay/rust-toolchain@nightly
         with:
           components: clippy
