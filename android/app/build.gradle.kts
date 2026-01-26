@@ -6,7 +6,6 @@ import java.time.format.DateTimeFormatter
 
 plugins {
 	alias(libs.plugins.android.application)
-	alias(libs.plugins.jetbrains.kotlin.android)
 	alias(libs.plugins.serialization)
 }
 
@@ -20,7 +19,7 @@ android {
 		val now = System.currentTimeMillis()
 
 		applicationId = "dev.janm.pinger"
-		minSdk = 21
+		minSdk = 23
 		targetSdk = 36
 		versionCode = (now / 10000).toInt()
 		versionName = DateTimeFormatter.ofPattern("uuuu.MM.dd.A").format(ZonedDateTime.ofInstant(Instant.ofEpochMilli(now), ZoneOffset.UTC))
@@ -76,7 +75,7 @@ android {
 
 	sourceSets {
 		getByName("main") {
-			java.srcDir("../../lib/src/java_ffi")
+			java.directories.add("../../lib/src/java_ffi")
 		}
 	}
 }
