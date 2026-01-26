@@ -32,7 +32,7 @@ tracing-subscriber = { version = "0.3.22", features = [
 regex = "1.12.2"
 
 [build-dependencies]
-minify-html = "0.16.5"
+minify-html = "0.18.1"
 
 [lints.rust]
 unsafe_code = "forbid"
