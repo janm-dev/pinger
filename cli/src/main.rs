@@ -728,7 +728,7 @@ where
 					info.lat.0,
 					info.lon.0,
 					(SystemTime::UNIX_EPOCH.checked_add(Duration::from_secs(info.ts.0)))
-						.unwrap_or_else(|| SystemTime::now() + Duration::from_secs(60))
+						.unwrap_or_else(|| SystemTime::now() + Duration::from_mins(1))
 						.elapsed()
 						.map_or_else(
 							|err| format!("-{}", err.duration().as_secs()),
