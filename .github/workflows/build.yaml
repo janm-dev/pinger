@@ -45,7 +45,7 @@ jobs:
       - run: |
           cargo install --locked cargo-about
           cargo about generate -o attribution-${{ matrix.dir }}.html --manifest-path ${{ matrix.dir }}/Cargo.toml --all-features about.hbs
-      - uses: softprops/action-gh-release@v2
+      - uses: softprops/action-gh-release@v3
         with:
           name: ${{ needs.setup.outputs.tag }}
           tag_name: ${{ needs.setup.outputs.tag }}
@@ -94,7 +94,7 @@ jobs:
           keyPassword: ${{ secrets.ANDROID_SIGNING_KEY_PASSWORD }}
           buildToolsVersion: ${{ env.BUILD_TOOL_VERSION }}
       - run: mv ${{ steps.sign_apk.outputs.signedFile }} pinger.apk
-      - uses: softprops/action-gh-release@v2
+      - uses: softprops/action-gh-release@v3
         with:
           name: ${{ needs.setup.outputs.tag }}
           tag_name: ${{ needs.setup.outputs.tag }}
@@ -120,7 +120,7 @@ jobs:
           cd ${{ matrix.dir }}
           cargo build --release --target ${{ matrix.target }}
           mv target/${{ matrix.target }}/release/pinger-${{ matrix.dir }} ../${{ matrix.dir }}-${{ matrix.target }}
-      - uses: softprops/action-gh-release@v2
+      - uses: softprops/action-gh-release@v3
         with:
           name: ${{ needs.setup.outputs.tag }}
           tag_name: ${{ needs.setup.outputs.tag }}
@@ -146,7 +146,7 @@ jobs:
           cd ${{ matrix.dir }}
           cargo build --release --target ${{ matrix.target }}
           cp "target/${{ matrix.target }}/release/pinger-${{ matrix.dir }}.exe" "../${{ matrix.dir }}-${{ matrix.target }}.exe"
-      - uses: softprops/action-gh-release@v2
+      - uses: softprops/action-gh-release@v3
         with:
           name: ${{ needs.setup.outputs.tag }}
           tag_name: ${{ needs.setup.outputs.tag }}
