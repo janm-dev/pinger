@@ -16,7 +16,7 @@ java-ffi = ["std", "dep:jni"]
 
 [dependencies]
 base64 = { version = "0.22.1", default-features = false }
-chacha20poly1305 = "0.10.1"
+chacha20poly1305 = "0.11.0"
 jni = { version = "0.21.1", optional = true }
 serde = { version = "1.0.228", features = [
 	"derive",
