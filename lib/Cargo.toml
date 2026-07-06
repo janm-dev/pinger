@@ -21,7 +21,7 @@ jni = { version = "0.21.1", optional = true }
 serde = { version = "1.0.228", features = [
 	"derive",
 ], default-features = false }
-x25519-dalek = { version = "2.0.1", features = [
+x25519-dalek = { version = "3.0.0", features = [
 	"getrandom",
 	"static_secrets",
 ] }
