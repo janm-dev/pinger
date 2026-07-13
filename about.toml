@@ -29,8 +29,6 @@ targets = [
 	"x86_64-linux-android",
 ]
 
-no-clearly-defined = true
-
 [ring]
 accepted = ["OpenSSL"]
 
