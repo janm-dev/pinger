@@ -17,6 +17,7 @@ targets = [
 
 [advisories]
 version = 2
+unmaintained = "workspace"
 ignore = []
 
 [licenses]
