@@ -761,15 +761,14 @@ where
 		}
 		ClientDownMessage::FromServer {
 			msg: ServerClientMessage::NoSuchId { id },
-		} => {
-			if !conn.outgoing.is_none() {
-				conn.outgoing = OutgoingExchange::None;
-				println!(
-					"{}",
-					format!("Id {id} not found, stopping outgoing ping").bold()
-				);
-			}
+		} if !conn.outgoing.is_none() => {
+			conn.outgoing = OutgoingExchange::None;
+			println!(
+				"{}",
+				format!("Id {id} not found, stopping outgoing ping").bold()
+			);
 		}
+
 		_ => (),
 	}
 }
