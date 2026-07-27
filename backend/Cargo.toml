@@ -15,7 +15,7 @@ axum = { version = "0.8.9", default-features = false, features = [
 	"macros",
 	"ws",
 ] }
-base64 = "0.22.1"
+base64 = "0.23.0"
 pinger = { version = "*", path = "../lib" }
 rand = "0.9.1"
 serde = { version = "1.0.228", features = ["derive"] }
